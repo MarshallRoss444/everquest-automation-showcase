@@ -33,7 +33,7 @@ local THREAT_ABILITY = {
 }
 
 -- Designated fight location (EQ Y X Z)
-local SPOT_Y, SPOT_X, SPOT_Z = -225, 935, 400
+local SPOT_Y, SPOT_X, SPOT_Z = -223, 905, 400
 local SPOT_RADIUS   = 15    -- units: considered "at fight spot"
 local ROTATE_MS     = 3000  -- ms between rotation cycles in FIGHT state
 local DRAG_TAUNT_MS = 2500  -- ms between threat pulses while dragging to spot
@@ -88,7 +88,8 @@ end
 
 -- True if spawn is currently targeting the tank
 local function hasAggro(spawn)
-    return spawn.Target.Name() == myName
+    local t = spawn.Target
+    return t() ~= nil and t.Name() == myName
 end
 
 -- Target mob by ID; returns true on success
