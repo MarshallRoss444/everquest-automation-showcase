@@ -58,10 +58,12 @@ end
 -- ============================================================================
 
 local function disbandAllGroups()
-    printf('Disbanding all existing groups...')
+    printf('Disbanding all existing groups and raids...')
     for _, grp in ipairs(GROUPS) do
+        dex(grp.leader, '/raiddisband')
         dex(grp.leader, '/disband')
         for _, member in ipairs(grp.members) do
+            dex(member, '/raiddisband')
             dex(member, '/disband')
         end
     end
