@@ -129,6 +129,10 @@ local function sendData(targetDriver)
             local hpr = (item.HPRegen and item.HPRegen()) or 0
             local mnr = (item.ManaRegen and item.ManaRegen()) or 0
             
+            -- Damage and Delay (New)
+            local dam = (item.Damage and item.Damage()) or 0
+            local del = (item.Delay and item.Delay()) or 0
+            
             -- Resists (using dual lookup for compatibility)
             local svm = (item.MR and item.MR()) or (item.SvMagic and item.SvMagic()) or 0
             local svf = (item.FR and item.FR()) or (item.SvFire and item.SvFire()) or 0
@@ -162,9 +166,9 @@ local function sendData(targetDriver)
                 end
             end
             
-            local data = string.format("%s|%s|Item|%d-%s||%s|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%s|%s|%s",
+            local data = string.format("%s|%s|Item|%d-%s||%s|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%s|%s|%s",
                 me, myClass, i, sName, iName, ac, hp, mana, str, sta, int, wis, agi, dex, cha,
-                svm, svf, svc, svd, svp, hpr, mnr,
+                svm, svf, svc, svd, svp, hpr, mnr, dam, del,
                 table.concat(focusNames, " - "), table.concat(focusTypes, " - "), table.concat(focusDescs, " - "))
 
             if targetDriver == "local" then
@@ -184,7 +188,7 @@ local function startCollecting()
     printf("\ag[GearLog]\ax Initializing Robust Collection (v15.2)...")
     local file = io.open(CSV_FILENAME, "w")
     if not file then return end
-    file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusType,FocusDesc\n")
+    file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Damage,Delay,Focus,FocusType,FocusDesc\n")
     file:close()
     
     mq.bind('/gearlog_add', function(...)
