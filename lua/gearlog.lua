@@ -187,8 +187,9 @@ local function startCollecting()
     file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusType,FocusDesc\n")
     file:close()
     
-    mq.bind('/gearlog_add', function(data)
-        if not data then return end
+    mq.bind('/gearlog_add', function(...)
+        local data = table.concat({...}, " ")
+        if not data or data == "" then return end
         writeLine(data)
     end)
     
