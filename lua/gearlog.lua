@@ -161,7 +161,7 @@ local function sendData(targetDriver)
             
             local focus = ""
             if item.Focus and item.Focus() ~= nil then
-                focus = item.Focus.Name() or ""
+                focus = item.Focus().Name() or ""
             end
             
             local focusDesc = parseFocus(focus)
