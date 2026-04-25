@@ -59,7 +59,11 @@ local function parseFocus(fName)
         elseif attrib == 192 then desc = desc .. "Spell Crit " .. val .. "%; "
         elseif attrib == 169 then desc = desc .. "Cleave " .. val .. "; "
         elseif attrib == 100 then desc = desc .. "Ferocity " .. val .. "; "
-        elseif attrib == 4 then desc = desc .. "Accuracy " .. val .. "; "
+        elseif attrib == 4 or attrib == 216 then desc = desc .. "Accuracy " .. val .. "; "
+        elseif attrib == 177 then desc = desc .. "Double Attack " .. val .. "%; "
+        elseif attrib == 294 then desc = desc .. "Spell Crit Chance " .. val .. "%; "
+        elseif attrib == 273 then desc = desc .. "Melee Crit Chance " .. val .. "%; "
+        elseif attrib == 85 then desc = desc .. "Proc Rate " .. val .. "%; "
         end
     end
     
@@ -129,20 +133,38 @@ local function sendData(targetDriver)
             local seen = {}
             
             -- Check for Skill Mods (e.g. Singing, Stringed, etc)
-            local skillMod = item.SkillModifier and tostring(item.SkillModifier()) or ""
-            local skillAmt = item.SkillModifierAmount and item.SkillModifierAmount() or 0
-            if skillMod ~= "" and skillMod ~= "NULL" and skillAmt > 0 then
+            local skillMod = ""
+            local skillAmt = 0
+            pcall(function()
+                if item.SkillModifier then skillMod = tostring(item.SkillModifier()) end
+                if item.SkillModifierAmount then skillAmt = item.SkillModifierAmount() end
+                
+                -- ROF2 backup naming
+                if skillMod == "" or skillMod == "nil" then
+                    if item.SkillModType then skillMod = tostring(item.SkillModType()) end
+                    if item.SkillModValue then skillAmt = item.SkillModValue() end
+                end
+            end)
+
+            if skillMod ~= "" and skillMod ~= "nil" and skillMod ~= "NULL" and skillAmt > 0 then
                 table.insert(focusNames, skillMod .. " Mod")
                 table.insert(focusDescs, "+" .. skillAmt)
             end
 
-            local possibleEffects = { "Focus", "Worn", "Spell" }
+            local possibleEffects = { "Focus", "Worn", "Spell", "Clicky", "Proc" }
             for _, effType in ipairs(possibleEffects) do
                 local val = tostring(item[effType])
                 if val ~= "NULL" and val ~= "nil" and val ~= "" and not seen[val] then
                     table.insert(focusNames, val)
                     local d = parseFocus(val)
-                    if d ~= "" then table.insert(focusDescs, d) end
+                    if d ~= "" then 
+                        table.insert(focusDescs, d) 
+                    else
+                        -- If it's a Clicky or Proc with no numeric focus data, at least mark it
+                        if effType == "Clicky" or effType == "Proc" then
+                            table.insert(focusDescs, "[" .. effType .. "]")
+                        end
+                    end
                     seen[val] = true
                 end
             end
