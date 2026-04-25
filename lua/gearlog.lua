@@ -59,11 +59,31 @@ local function parseFocus(fName)
         elseif attrib == 192 then desc = desc .. "Spell Crit " .. val .. "%; "
         elseif attrib == 169 then desc = desc .. "Cleave " .. val .. "; "
         elseif attrib == 100 then desc = desc .. "Ferocity " .. val .. "; "
-        elseif attrib == 4 or attrib == 216 then desc = desc .. "Accuracy " .. val .. "; "
+        elseif attrib == 4 or attrib == 216 or attrib == 184 then desc = desc .. "Accuracy " .. val .. "; "
         elseif attrib == 177 then desc = desc .. "Double Attack " .. val .. "%; "
         elseif attrib == 294 then desc = desc .. "Spell Crit Chance " .. val .. "%; "
         elseif attrib == 273 then desc = desc .. "Melee Crit Chance " .. val .. "%; "
         elseif attrib == 85 then desc = desc .. "Proc Rate " .. val .. "%; "
+        elseif attrib == 13 then desc = desc .. "See Invis; "
+        elseif attrib == 66 then desc = desc .. "Ultravision; "
+        elseif attrib == 14 then desc = desc .. "Enduring Breath; "
+        elseif attrib == 46 then desc = desc .. "Poison Resist " .. val .. "; "
+        elseif attrib == 47 then desc = desc .. "Magic Resist " .. val .. "; "
+        elseif attrib == 48 then desc = desc .. "Fire Resist " .. val .. "; "
+        elseif attrib == 50 then desc = desc .. "Cold Resist " .. val .. "; "
+        elseif attrib == 49 then desc = desc .. "Disease Resist " .. val .. "; "
+        elseif attrib == 383 then desc = desc .. "Sympathetic Proc; "
+        elseif attrib == 348 then desc = desc .. "Mana Proc (" .. val .. "); "
+        elseif attrib == 142 then desc = desc .. "Max HP " .. val .. "; "
+        elseif attrib == 10 then desc = desc .. "Proc/Direct Dmg (" .. val .. "); "
+        end
+    end
+    
+    -- Fallback: If we have effects but no mapping, use the spell description
+    if desc == "" and next(effects) then
+        local sDesc = s.Description()
+        if sDesc and sDesc ~= "NULL" and sDesc ~= "" then
+            desc = sDesc:gsub("#1", effects[10] or effects[1] or "?"):gsub("@1", effects[10] or effects[1] or "?")
         end
     end
     
