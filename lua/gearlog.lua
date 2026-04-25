@@ -160,13 +160,17 @@ local function sendData(targetDriver)
             local manaregen = item.ManaRegen and item.ManaRegen() or 0
             
             local focus = ""
-            -- Use pcall to prevent fatal crashes on TLO evaluation
             pcall(function()
-                if item.Focus and item.Focus() ~= nil then
-                    focus = item.Focus().Name() or ""
-                elseif item.Spell and item.Spell() ~= nil then
-                    -- Fallback for older ROF2 builds where Focus is stored in .Spell
-                    focus = item.Spell().Name() or ""
+                -- Try Focus first
+                local f = item.Focus and item.Focus()
+                if f and tostring(f) ~= "NULL" then
+                    focus = tostring(f)
+                else
+                    -- Fallback to Spell (what the original macro used)
+                    local s = item.Spell and item.Spell()
+                    if s and tostring(s) ~= "NULL" then
+                        focus = tostring(s)
+                    end
                 end
             end)
             
