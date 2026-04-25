@@ -63,7 +63,13 @@ local function parseFocus(fName)
         elseif attrib == 177 then desc = desc .. "Double Attack " .. val .. "%; "
         elseif attrib == 294 then desc = desc .. "Spell Crit Chance " .. val .. "%; "
         elseif attrib == 273 then desc = desc .. "Melee Crit Chance " .. val .. "%; "
-        elseif attrib == 85 then desc = desc .. "Proc Rate " .. val .. "%; "
+        elseif attrib == 85 then 
+            if val > 1000 then
+                local procSpell = mq.TLO.Spell(val)
+                desc = desc .. string.format("Proc: %s; ", procSpell() or "Unknown")
+            else
+                desc = desc .. "Proc Rate " .. val .. "%; "
+            end
         elseif attrib == 13 then desc = desc .. "See Invis; "
         elseif attrib == 66 then desc = desc .. "Ultravision; "
         elseif attrib == 14 then desc = desc .. "Enduring Breath; "
@@ -76,6 +82,7 @@ local function parseFocus(fName)
         elseif attrib == 348 then desc = desc .. "Mana Proc (" .. val .. "); "
         elseif attrib == 142 then desc = desc .. "Max HP " .. val .. "; "
         elseif attrib == 10 then desc = desc .. "Proc/Direct Dmg (" .. val .. "); "
+        elseif attrib == 11 then desc = desc .. "Haste " .. (val-100) .. "%; "
         end
     end
     
@@ -95,7 +102,7 @@ local function startCollecting()
     printf("\ag[GearLog]\ax Initializing Collection loop...")
     local file = io.open(CSV_FILENAME, "w")
     if not file then return end
-    file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusDesc\n")
+    file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusDesc,FocusType\n")
     file:close()
     
     mq.bind('/gearlog_add', function(...)
@@ -150,6 +157,7 @@ local function sendData(targetDriver)
             -- Focus Collection (Multiple slots)
             local focusNames = {}
             local focusDescs = {}
+            local focusTypes = {}
             local seen = {}
             
             -- Check for Skill Mods (e.g. Singing, Stringed, etc)
@@ -169,6 +177,7 @@ local function sendData(targetDriver)
             if skillMod ~= "" and skillMod ~= "nil" and skillMod ~= "NULL" and skillAmt > 0 then
                 table.insert(focusNames, skillMod .. " Mod")
                 table.insert(focusDescs, "+" .. skillAmt)
+                table.insert(focusTypes, "SkillMod")
             end
 
             local possibleEffects = { "Focus", "Worn", "Spell", "Clicky", "Proc" }
@@ -176,6 +185,7 @@ local function sendData(targetDriver)
                 local val = tostring(item[effType])
                 if val ~= "NULL" and val ~= "nil" and val ~= "" and not seen[val] then
                     table.insert(focusNames, val)
+                    table.insert(focusTypes, effType)
                     local d = parseFocus(val)
                     if d ~= "" then 
                         table.insert(focusDescs, d) 
@@ -183,6 +193,8 @@ local function sendData(targetDriver)
                         -- If it's a Clicky or Proc with no numeric focus data, at least mark it
                         if effType == "Clicky" or effType == "Proc" then
                             table.insert(focusDescs, "[" .. effType .. "]")
+                        else
+                            table.insert(focusDescs, "Utility")
                         end
                     end
                     seen[val] = true
@@ -191,6 +203,16 @@ local function sendData(targetDriver)
             
             local finalFocusName = table.concat(focusNames, " | ")
             local finalFocusDesc = table.concat(focusDescs, " | ")
+            local finalFocusType = table.concat(focusTypes, " | ")
+            
+            local dataLine = string.format("%s,%s,Item,%d-%s,,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s,%s",
+                me, myClass, i, sName, iName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, finalFocusName, finalFocusDesc, finalFocusType)
+            
+            mq.cmdf("/dex %s /gearlog_add %s", targetDriver, dataLine)
+            mq.delay(30)
+        end
+    end
+end
             
             local dataLine = string.format("%s,%s,Item,%d-%s,,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s",
                 me, myClass, i, sName, iName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, finalFocusName, finalFocusDesc)
