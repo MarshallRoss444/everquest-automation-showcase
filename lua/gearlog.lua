@@ -14,7 +14,7 @@ local args = {...}
 local mode = args[1] or "collect"
 local DRIVER_NAME = "ExampleTank" -- Set default driver name here
 
-local CSV_FILENAME = mq.TLO.MacroQuest.Path("Logs") .. "\\MyGearLog.csv"
+local CSV_FILENAME = mq.TLO.MacroQuest.Path("Logs")() .. "\\MyGearLog.csv"
 local isCollecting = false
 
 -- The slots we care about (0 through 21 typically)
@@ -33,8 +33,8 @@ local function startCollecting()
         return
     end
     
-    -- Write header (Added Focus, HealAmount, SpellDamage compared to old mac)
-    file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,HStr,HSta,HInt,HWis,HAgi,HDex,Focus,HealAmt,SpellDmg\n")
+    -- Write header (Added Base Stats, Resists, Regen, and removed Heal/Spell dmg)
+    file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus\n")
     file:close()
     
     isCollecting = true
@@ -92,19 +92,30 @@ local function sendData(targetDriver)
             local ac = item.AC() or 0
             local hp = item.HP() or 0
             local mana = item.Mana() or 0
-            local hstr = item.HeroicSTR() or 0
-            local hsta = item.HeroicSTA() or 0
-            local hint = item.HeroicINT() or 0
-            local hwis = item.HeroicWIS() or 0
-            local hagi = item.HeroicAGI() or 0
-            local hdex = item.HeroicDEX() or 0
-            local focus = item.Focus() or ""
-            local healAmt = item.HealAmount() or 0
-            local spellDmg = item.SpellDamage() or 0
             
-            -- Format: Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,HStr,HSta,HInt,HWis,HAgi,HDex,Focus,HealAmt,SpellDmg
-            local dataLine = string.format("%s,%s,Item,%s,,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%d,%d",
-                me, myClass, slotName, itemName, ac, hp, mana, hstr, hsta, hint, hwis, hagi, hdex, focus, healAmt, spellDmg)
+            local str = item.STR() or 0
+            local sta = item.STA() or 0
+            local int = item.INT() or 0
+            local wis = item.WIS() or 0
+            local agi = item.AGI() or 0
+            local dex = item.DEX() or 0
+            local cha = item.CHA() or 0
+            
+            local svm = item.SVMagic() or 0
+            local svf = item.SVFire() or 0
+            local svc = item.SVCold() or 0
+            local svd = item.SVDisease() or 0
+            local svp = item.SVPoison() or 0
+            
+            local hpregen = item.HPRegen() or 0
+            local manaregen = item.ManaRegen() or 0
+            
+            local focus = item.Focus() or ""
+            
+            -- Format: Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus
+            -- Note: ItemName and Focus are wrapped in quotes to prevent commas from shifting CSV columns
+            local dataLine = string.format("%s,%s,Item,%s,,\"%s\",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,\"%s\"",
+                me, myClass, slotName, itemName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, focus)
             
             -- Send the line via DanNet
             mq.cmdf("/dex %s /gearlog_add %s", targetDriver, dataLine)
@@ -118,18 +129,28 @@ local function sendData(targetDriver)
                     local aAc = aug.Item.AC() or 0
                     local aHp = aug.Item.HP() or 0
                     local aMana = aug.Item.Mana() or 0
-                    local aHstr = aug.Item.HeroicSTR() or 0
-                    local aHsta = aug.Item.HeroicSTA() or 0
-                    local aHint = aug.Item.HeroicINT() or 0
-                    local aHwis = aug.Item.HeroicWIS() or 0
-                    local aHagi = aug.Item.HeroicAGI() or 0
-                    local aHdex = aug.Item.HeroicDEX() or 0
-                    local aFocus = aug.Item.Focus() or ""
-                    local aHealAmt = aug.Item.HealAmount() or 0
-                    local aSpellDmg = aug.Item.SpellDamage() or 0
                     
-                    local aDataLine = string.format("%s,%s,Aug,%s,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%d,%d",
-                        me, myClass, slotName, b, aName, aAc, aHp, aMana, aHstr, aHsta, aHint, aHwis, aHagi, aHdex, aFocus, aHealAmt, aSpellDmg)
+                    local aStr = aug.Item.STR() or 0
+                    local aSta = aug.Item.STA() or 0
+                    local aInt = aug.Item.INT() or 0
+                    local aWis = aug.Item.WIS() or 0
+                    local aAgi = aug.Item.AGI() or 0
+                    local aDex = aug.Item.DEX() or 0
+                    local aCha = aug.Item.CHA() or 0
+                    
+                    local aSvm = aug.Item.SVMagic() or 0
+                    local aSvf = aug.Item.SVFire() or 0
+                    local aSvc = aug.Item.SVCold() or 0
+                    local aSvd = aug.Item.SVDisease() or 0
+                    local aSvp = aug.Item.SVPoison() or 0
+                    
+                    local aHpregen = aug.Item.HPRegen() or 0
+                    local aManaregen = aug.Item.ManaRegen() or 0
+                    
+                    local aFocus = aug.Item.Focus() or ""
+                    
+                    local aDataLine = string.format("%s,%s,Aug,%s,%d,\"%s\",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,\"%s\"",
+                        me, myClass, slotName, b, aName, aAc, aHp, aMana, aStr, aSta, aInt, aWis, aAgi, aDex, aCha, aSvm, aSvf, aSvc, aSvd, aSvp, aHpregen, aManaregen, aFocus)
                     
                     mq.cmdf("/dex %s /gearlog_add %s", targetDriver, aDataLine)
                     mq.delay(10)
