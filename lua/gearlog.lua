@@ -20,6 +20,54 @@ local isCollecting = false
 -- The slots we care about (0 through 21 typically)
 local INVENTORY_SLOTS = 21
 
+-- Helper function to parse focus effect SPAs into readable strings
+local function parseFocus(spellName)
+    if not spellName or spellName == "" then return "" end
+    local spell = mq.TLO.Spell(spellName)
+    if not spell() then return "" end
+    
+    local desc = ""
+    local isBeneficial = nil
+    
+    -- First pass: check for SPA 138 (Beneficial/Detrimental restriction)
+    for i=1, 12 do
+        local spa = spell.SPA(i)()
+        local base = spell.Base(i)()
+        if spa == 138 then
+            if base == 1 then isBeneficial = true
+            elseif base == 0 then isBeneficial = false end
+        end
+    end
+    
+    local prefix = ""
+    if isBeneficial == true then prefix = "Bene "
+    elseif isBeneficial == false then prefix = "Detri " end
+
+    -- Second pass: find the actual effect
+    for i=1, 12 do
+        local spa = spell.SPA(i)()
+        local base = spell.Base(i)()
+        
+        if spa and base and base ~= 0 then
+            -- Map common SPAs to readable text
+            if spa == 15 or spa == 127 then desc = desc .. string.format("%sCast Time %d%%; ", prefix, base)
+            elseif spa == 108 or spa == 132 then desc = desc .. string.format("%sMana Pres %d%%; ", prefix, base)
+            elseif spa == 104 or spa == 124 then desc = desc .. string.format("%sSpell Dmg %d%%; ", prefix, base)
+            elseif spa == 105 or spa == 125 then desc = desc .. string.format("Healing %d%%; ", base) -- Healing is inherently beneficial
+            elseif spa == 128 then desc = desc .. string.format("%sDuration %d%%; ", prefix, base)
+            elseif spa == 129 then desc = desc .. string.format("%sRange %d%%; ", prefix, base)
+            end
+        end
+    end
+    
+    -- Trim trailing semicolon and space
+    if desc:len() > 0 then
+        desc = desc:sub(1, -3)
+    end
+    
+    return desc
+end
+
 -- ==============================================================================
 -- MODE: COLLECT (Run on Driver)
 -- ==============================================================================
@@ -34,7 +82,7 @@ local function startCollecting()
     end
     
     -- Write header (Added Base Stats, Resists, Regen, and removed Heal/Spell dmg)
-    file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus\n")
+    file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusDesc\n")
     file:close()
     
     isCollecting = true
@@ -112,11 +160,12 @@ local function sendData(targetDriver)
             local manaregen = item.ManaRegen and item.ManaRegen() or 0
             
             local focus = item.Focus() or ""
+            local focusDesc = parseFocus(focus)
             
-            -- Format: Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus
-            -- Note: ItemName and Focus are wrapped in quotes to prevent commas from shifting CSV columns
-            local dataLine = string.format("%s,%s,Item,%s,,\"%s\",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,\"%s\"",
-                me, myClass, slotName, itemName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, focus)
+            -- Format: Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusDesc
+            -- Note: ItemName, Focus, and FocusDesc are wrapped in quotes to prevent commas from shifting CSV columns
+            local dataLine = string.format("%s,%s,Item,%s,,\"%s\",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,\"%s\",\"%s\"",
+                me, myClass, slotName, itemName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, focus, focusDesc)
             
             -- Send the line via DanNet
             mq.cmdf("/dex %s /gearlog_add %s", targetDriver, dataLine)
