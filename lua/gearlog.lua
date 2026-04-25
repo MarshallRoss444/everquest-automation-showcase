@@ -101,11 +101,11 @@ local function sendData(targetDriver)
             local dex = item.DEX() or 0
             local cha = item.CHA() or 0
             
-            local svm = item.SVMagic() or 0
-            local svf = item.SVFire() or 0
-            local svc = item.SVCold() or 0
-            local svd = item.SVDisease() or 0
-            local svp = item.SVPoison() or 0
+            local svm = item.SvMagic() or 0
+            local svf = item.SvFire() or 0
+            local svc = item.SvCold() or 0
+            local svd = item.SvDisease() or 0
+            local svp = item.SvPoison() or 0
             
             local hpregen = item.HPRegen() or 0
             local manaregen = item.ManaRegen() or 0
@@ -138,11 +138,11 @@ local function sendData(targetDriver)
                     local aDex = aug.Item.DEX() or 0
                     local aCha = aug.Item.CHA() or 0
                     
-                    local aSvm = aug.Item.SVMagic() or 0
-                    local aSvf = aug.Item.SVFire() or 0
-                    local aSvc = aug.Item.SVCold() or 0
-                    local aSvd = aug.Item.SVDisease() or 0
-                    local aSvp = aug.Item.SVPoison() or 0
+                    local aSvm = aug.Item.SvMagic() or 0
+                    local aSvf = aug.Item.SvFire() or 0
+                    local aSvc = aug.Item.SvCold() or 0
+                    local aSvd = aug.Item.SvDisease() or 0
+                    local aSvp = aug.Item.SvPoison() or 0
                     
                     local aHpregen = aug.Item.HPRegen() or 0
                     local aManaregen = aug.Item.ManaRegen() or 0
