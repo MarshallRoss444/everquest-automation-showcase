@@ -1,35 +1,31 @@
 local mq = require('mq')
 
 -- ==============================================================================
--- GearLog MMO - Lua Edition
+-- GearLog MMO - Lua Edition (ID-Based Focus Parsing)
 -- ==============================================================================
 local args = {...}
 local mode = args[1] or "collect"
 local DRIVER_NAME = "ExampleTank"
-
 local CSV_FILENAME = mq.TLO.MacroQuest.Path("Logs")() .. "\\MyGearLog.csv"
-local isCollecting = false
 local INVENTORY_SLOTS = 21
 
--- HELPER: Log to console with color
-local function log(msg) printf("\ag[GearLog]\ax %s", msg) end
-local function error(msg) printf("\ar[GearLog]\ax %s", msg) end
-
--- Helper function to parse focus effect SPAs into readable strings
-local function parseFocus(spellName)
-    if not spellName or spellName == "" or spellName == "NULL" then return "" end
+-- Helper function to parse focus effect by ID
+local function parseFocusByID(spellID)
+    if not spellID or spellID == 0 then return "" end
     
-    local spell = mq.TLO.Spell(spellName)
-    if not spell() or spell.ID() == 0 then return "" end
+    local spell = mq.TLO.Spell(spellID)
+    if not spell() then return "" end
     
     local desc = ""
     local isBeneficial = nil
     
     -- Check for SPA 138 (Beneficial/Detrimental restriction)
-    -- In older MQ2, we might need to check if .SPA exists or use .Attrib
     for i=1, 12 do
         local spa = 0
         pcall(function() spa = spell.SPA(i)() or 0 end)
+        -- Fallback for very old builds
+        if spa == 0 then pcall(function() spa = spell.Attrib(i)() or 0 end) end
+        
         local base = 0
         pcall(function() base = spell.Base(i)() or 0 end)
 
@@ -43,10 +39,12 @@ local function parseFocus(spellName)
     if isBeneficial == true then prefix = "Bene "
     elseif isBeneficial == false then prefix = "Detri " end
 
-    -- find the actual effect
+    -- Find the actual effect
     for i=1, 12 do
         local spa = 0
         pcall(function() spa = spell.SPA(i)() or 0 end)
+        if spa == 0 then pcall(function() spa = spell.Attrib(i)() or 0 end) end
+        
         local base = 0
         pcall(function() base = spell.Base(i)() or 0 end)
         
@@ -66,39 +64,30 @@ local function parseFocus(spellName)
 end
 
 -- ==============================================================================
--- MODE: COLLECT (Run on Driver)
+-- MODE: COLLECT
 -- ==============================================================================
 local function startCollecting()
-    log("Starting collection. Clearing old " .. CSV_FILENAME)
+    printf("\ag[GearLog]\ax Starting collection...")
     local file, err = io.open(CSV_FILENAME, "w")
-    if not file then error("Error opening file: " .. (err or "unknown")) return end
-    
+    if not file then return end
     file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusDesc\n")
     file:close()
     
-    isCollecting = true
     mq.bind('/gearlog_add', function(...)
-        local dataString = table.concat({...}, " ")
-        if isCollecting then
-            local f = io.open(CSV_FILENAME, "a")
-            if f then f:write(dataString .. "\n") f:close() end
-        end
+        local f = io.open(CSV_FILENAME, "a")
+        if f then f:write(table.concat({...}, " ") .. "\n") f:close() end
     end)
     
-    log("Listening for data (45s)... Telling army to send.")
     mq.cmdf("/dgae /lua run gearlog send %s", mq.TLO.Me.Name())
     mq.cmdf("/lua run gearlog send %s", mq.TLO.Me.Name())
     
-    local endTime = os.time() + 45
-    while os.time() < endTime do mq.delay(100) end
-    
-    isCollecting = false
+    mq.delay(45000) -- Listen for 45s
     mq.unbind('/gearlog_add')
-    log("Collection complete!")
+    printf("\ag[GearLog]\ax Complete!")
 end
 
 -- ==============================================================================
--- MODE: SEND (Run on Army)
+-- MODE: SEND
 -- ==============================================================================
 local function sendData(targetDriver)
     local me = mq.TLO.Me.Name()
@@ -110,7 +99,7 @@ local function sendData(targetDriver)
             local slotName = string.format("%d-%s", i, mq.TLO.InvSlot(i).Name())
             local itemName = item.Name() or ""
             
-            -- Safe stat extraction
+            -- Stats
             local ac = item.AC() or 0
             local hp = item.HP() or 0
             local mana = item.Mana() or 0
@@ -129,20 +118,25 @@ local function sendData(targetDriver)
             local hpregen = item.HPRegen and item.HPRegen() or 0
             local manaregen = item.ManaRegen and item.ManaRegen() or 0
             
-            -- Focus Extraction
-            local focus = ""
+            -- Focus by ID
+            local focusName = ""
+            local focusID = 0
             local f = item.Focus and item.Focus()
-            if f and tostring(f) ~= "NULL" then
-                focus = tostring(f)
+            if f and f.ID() > 0 then
+                focusID = f.ID()
+                focusName = f.Name()
             else
                 local s = item.Spell and item.Spell()
-                if s and tostring(s) ~= "NULL" then focus = tostring(s) end
+                if s and s.ID() > 0 then
+                    focusID = s.ID()
+                    focusName = s.Name()
+                end
             end
             
-            local focusDesc = parseFocus(focus)
+            local focusDesc = parseFocusByID(focusID)
             
             local dataLine = string.format("%s,%s,Item,%s,,\"%s\",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,\"%s\",\"%s\"",
-                me, myClass, slotName, itemName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, focus, focusDesc)
+                me, myClass, slotName, itemName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, focusName, focusDesc)
             
             mq.cmdf("/dex %s /gearlog_add %s", targetDriver, dataLine)
             mq.delay(20)
