@@ -1,7 +1,7 @@
 local mq = require('mq')
 
 -- ==============================================================================
--- GearLog MMO - THE FINAL PEACE TREATY (ROF2 Edition)
+-- GearLog MMO - Version 12 (Focus Fix)
 -- ==============================================================================
 local args = {...}
 local mode = args[1] or "collect"
@@ -9,34 +9,40 @@ local DRIVER_NAME = "ExampleTank"
 local CSV_FILENAME = mq.TLO.MacroQuest.Path("Logs")() .. "\\MyGearLog.csv"
 local INVENTORY_SLOTS = 21
 
--- Helper: Clean strings for safe network transfer (No commas or quotes!)
+-- Helper: Clean strings for CSV safety
 local function clean(str)
     if not str then return "" end
     local s = tostring(str)
-    s = s:gsub(",", "")   -- Remove commas
-    s = s:gsub("\"", "")  -- Remove double quotes
-    s = s:gsub("'", "")   -- Remove single quotes
-    return s:match("^%s*(.-)%s*$") -- Trim whitespace
+    s = s:gsub(",", ""):gsub("\"", ""):gsub("'", "")
+    return s:match("^%s*(.-)%s*$") or ""
 end
 
--- Helper: Parse Focus Math (Absolute Max logic)
-local function parseFocus(fName)
-    local name = clean(fName)
-    if name == "" or name == "NULL" or name == "nil" then return "" end
-    
-    local s = mq.TLO.Spell(name)
-    if not s or not s() or s.ID() == 0 then return "" end
+-- Helper: Robust Focus Parsing
+local function parseFocus(spellObj)
+    if not spellObj or not spellObj() or spellObj.ID() == 0 then return "" end
     
     local desc = ""
     local isBene = nil
     local effects = {}
 
     for i=1, 12 do
-        local spa = s.SPA(i)() or s.Attrib(i)() or 0
-        local val = math.max(math.abs(s.Base(i)() or 0), math.abs(s.Max(i)() or 0))
+        local spa = 0
+        pcall(function() spa = spellObj.SPA(i)() or spellObj.Attrib(i)() or 0 end)
+        
+        local val = 0
+        pcall(function()
+            local b = math.abs(spellObj.Base(i)() or 0)
+            local m = math.abs(spellObj.Max(i)() or 0)
+            -- We want the actual percentage (usually > 1). 1 is often just a flag.
+            if m > 1 then val = m
+            elseif b > 1 then val = b
+            else val = math.max(b, m) end
+        end)
         
         if spa == 138 then
-            if s.Base(i)() == 1 then isBene = true elseif s.Base(i)() == 0 then isBene = false end
+            local bVal = 0
+            pcall(function() bVal = spellObj.Base(i)() end)
+            if bVal == 1 then isBene = true elseif bVal == 0 then isBene = false end
         elseif spa > 0 and val > 0 then
             if not effects[spa] or val > effects[spa] then
                 effects[spa] = val
@@ -57,13 +63,12 @@ local function parseFocus(fName)
         end
     end
     
-    if desc:len() > 0 then desc = desc:sub(1, -3) end
-    return desc
+    return clean(desc:len() > 0 and desc:sub(1, -3) or "")
 end
 
 -- MODE: COLLECT
 local function startCollecting()
-    printf("\ag[GearLog]\ax Starting 45s collection loop...")
+    printf("\ag[GearLog]\ax Collecting data...")
     local file = io.open(CSV_FILENAME, "w")
     if not file then return end
     file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusDesc\n")
@@ -71,9 +76,10 @@ local function startCollecting()
     
     mq.bind('/gearlog_add', function(...)
         local line = table.concat({...}, " ")
-        if not line or line == "" then return end
-        local f = io.open(CSV_FILENAME, "a")
-        if f then f:write(line .. "\n") f:close() end
+        if line and line ~= "" then
+            local f = io.open(CSV_FILENAME, "a")
+            if f then f:write(line .. "\n") f:close() end
+        end
     end)
     
     mq.cmdf("/dgae /lua run gearlog send %s", mq.TLO.Me.Name())
@@ -86,7 +92,7 @@ local function startCollecting()
     end
     
     mq.unbind('/gearlog_add')
-    printf("\ag[GearLog]\ax Complete! Check Logs/MyGearLog.csv")
+    printf("\ag[GearLog]\ax Complete!")
 end
 
 -- MODE: SEND
@@ -97,9 +103,10 @@ local function sendData(targetDriver)
     for i = 0, INVENTORY_SLOTS do
         local item = mq.TLO.Me.Inventory(i)
         if item and item() then
-            local itemName = clean(item.Name())
-            local slotName = clean(mq.TLO.InvSlot(i).Name() or "unknown")
+            local iName = clean(item.Name())
+            local sName = clean(mq.TLO.InvSlot(i).Name() or "unknown")
             
+            -- Stats
             local ac = item.AC() or 0
             local hp = item.HP() or 0
             local mana = item.Mana() or 0
@@ -118,21 +125,25 @@ local function sendData(targetDriver)
             local hpregen = item.HPRegen() or 0
             local manaregen = item.ManaRegen() or 0
             
+            -- Focus Logic: USE RAW OBJECT FOR LOOKUP
             local focusName = ""
-            local fRaw = tostring(item.Spell)
-            local fRaw2 = tostring(item.Focus)
-            if fRaw ~= "NULL" and fRaw ~= "nil" then focusName = clean(fRaw)
-            elseif fRaw2 ~= "NULL" and fRaw2 ~= "nil" then focusName = clean(fRaw2) end
-            
             local focusDesc = ""
-            if focusName ~= "" then 
-                focusDesc = parseFocus(focusName)
-                printf("\ay[GearLog]\ax Found: \aw%s\ax (\ag%s\ax)", focusName, focusDesc)
+            local sObj = nil
+            
+            if item.Spell and item.Spell() and item.Spell.ID() > 0 then
+                sObj = item.Spell
+            elseif item.Focus and item.Focus() and item.Focus.ID() > 0 then
+                sObj = item.Focus
             end
             
-            -- No quotes in the dataLine anymore! Completely safe for network.
+            if sObj then
+                focusName = clean(sObj.Name())
+                focusDesc = parseFocus(sObj)
+                printf("\ay[GearLog]\ax %s -> %s", focusName, focusDesc)
+            end
+            
             local dataLine = string.format("%s,%s,Item,%d-%s,,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s",
-                me, myClass, i, slotName, itemName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, focusName, focusDesc)
+                me, myClass, i, sName, iName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, focusName, focusDesc)
             
             mq.cmdf("/dex %s /gearlog_add %s", targetDriver, dataLine)
             mq.delay(20)
