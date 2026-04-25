@@ -160,11 +160,22 @@ local function sendData(targetDriver)
             local manaregen = item.ManaRegen and item.ManaRegen() or 0
             
             local focus = ""
-            if item.Focus and item.Focus() ~= nil then
-                focus = item.Focus().Name() or ""
-            end
+            -- Use pcall to prevent fatal crashes on TLO evaluation
+            pcall(function()
+                if item.Focus and item.Focus() ~= nil then
+                    focus = item.Focus().Name() or ""
+                elseif item.Spell and item.Spell() ~= nil then
+                    -- Fallback for older ROF2 builds where Focus is stored in .Spell
+                    focus = item.Spell().Name() or ""
+                end
+            end)
             
-            local focusDesc = parseFocus(focus)
+            local focusDesc = ""
+            if focus ~= "" then
+                pcall(function()
+                    focusDesc = parseFocus(focus)
+                end)
+            end
             
             -- Format: Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusDesc
             -- Note: ItemName, Focus, and FocusDesc are wrapped in quotes to prevent commas from shifting CSV columns
