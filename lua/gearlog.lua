@@ -1,7 +1,7 @@
 local mq = require('mq')
 
 -- ==============================================================================
--- GearLog MMO - Version 15.1 (FIXED SCOPING)
+-- GearLog MMO - Version 15.2 (STABILIZED SAFETY)
 -- ==============================================================================
 local args = {...}
 local mode = args[1] or "collect"
@@ -103,7 +103,6 @@ local function writeLine(line)
     end
 end
 
--- sendData must be defined BEFORE startCollecting calls it
 local function sendData(targetDriver)
     local me = mq.TLO.Me.Name()
     local myClass = mq.TLO.Me.Class.ShortName()
@@ -114,7 +113,28 @@ local function sendData(targetDriver)
         if item and item() then
             count = count + 1
             local iName = tostring(item.Name()):gsub(",", ""):gsub("|", "")
-            local sName = tostring(mq.TLO.InvSlot(i).Name()):gsub(",", ""):gsub("|", "")
+            local sName = tostring(mq.TLO.InvSlot(i).Name() or "Unknown"):gsub(",", ""):gsub("|", "")
+            
+            -- Safe Stat Extraction Logic
+            local ac = (item.AC and item.AC()) or 0
+            local hp = (item.HP and item.HP()) or 0
+            local mana = (item.Mana and item.Mana()) or 0
+            local str = (item.STR and item.STR()) or 0
+            local sta = (item.STA and item.STA()) or 0
+            local int = (item.INT and item.INT()) or 0
+            local wis = (item.WIS and item.WIS()) or 0
+            local agi = (item.AGI and item.AGI()) or 0
+            local dex = (item.DEX and item.DEX()) or 0
+            local cha = (item.CHA and item.CHA()) or 0
+            local hpr = (item.HPRegen and item.HPRegen()) or 0
+            local mnr = (item.ManaRegen and item.ManaRegen()) or 0
+            
+            -- Resists (using dual lookup for compatibility)
+            local svm = (item.MR and item.MR()) or (item.SvMagic and item.SvMagic()) or 0
+            local svf = (item.FR and item.FR()) or (item.SvFire and item.SvFire()) or 0
+            local svc = (item.CR and item.CR()) or (item.SvCold and item.SvCold()) or 0
+            local svd = (item.DR and item.DR()) or (item.SvDisease and item.SvDisease()) or 0
+            local svp = (item.PR and item.PR()) or (item.SvPoison and item.SvPoison()) or 0
             
             local focusNames, focusDescs, focusTypes = {}, {}, {}
             local seen = {}
@@ -143,10 +163,8 @@ local function sendData(targetDriver)
             end
             
             local data = string.format("%s|%s|Item|%d-%s||%s|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%s|%s|%s",
-                me, myClass, i, sName, iName, item.AC() or 0, item.HP() or 0, item.Mana() or 0,
-                item.STR() or 0, item.STA() or 0, item.INT() or 0, item.WIS() or 0, item.AGI() or 0, item.DEX() or 0, item.CHA() or 0,
-                item.SvMagic() or item.MR() or 0, item.SvFire() or item.FR() or 0, item.SvCold() or item.CR() or 0, item.SvDisease() or item.DR() or 0, item.SvPoison() or item.PR() or 0,
-                item.HPRegen() or 0, item.ManaRegen() or 0,
+                me, myClass, i, sName, iName, ac, hp, mana, str, sta, int, wis, agi, dex, cha,
+                svm, svf, svc, svd, svp, hpr, mnr,
                 table.concat(focusNames, " - "), table.concat(focusTypes, " - "), table.concat(focusDescs, " - "))
 
             if targetDriver == "local" then
@@ -163,7 +181,7 @@ local function sendData(targetDriver)
 end
 
 local function startCollecting()
-    printf("\ag[GearLog]\ax Initializing Robust Collection...")
+    printf("\ag[GearLog]\ax Initializing Robust Collection (v15.2)...")
     local file = io.open(CSV_FILENAME, "w")
     if not file then return end
     file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusType,FocusDesc\n")
@@ -175,7 +193,7 @@ local function startCollecting()
     end)
     
     mq.cmdf("/dgae /lua run gearlog send %s", mq.TLO.Me.Name())
-    sendData("local") -- Now safe to call
+    sendData("local")
     
     local endTime = os.time() + 30
     while os.time() < endTime do
