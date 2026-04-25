@@ -93,22 +93,22 @@ local function sendData(targetDriver)
             local hp = item.HP() or 0
             local mana = item.Mana() or 0
             
-            local str = item.STR() or 0
-            local sta = item.STA() or 0
-            local int = item.INT() or 0
-            local wis = item.WIS() or 0
-            local agi = item.AGI() or 0
-            local dex = item.DEX() or 0
-            local cha = item.CHA() or 0
+            local str = item.STR and item.STR() or 0
+            local sta = item.STA and item.STA() or 0
+            local int = item.INT and item.INT() or 0
+            local wis = item.WIS and item.WIS() or 0
+            local agi = item.AGI and item.AGI() or 0
+            local dex = item.DEX and item.DEX() or 0
+            local cha = item.CHA and item.CHA() or 0
             
-            local svm = item.SvMagic() or 0
-            local svf = item.SvFire() or 0
-            local svc = item.SvCold() or 0
-            local svd = item.SvDisease() or 0
-            local svp = item.SvPoison() or 0
+            local svm = item.svMagic and item.svMagic() or item.MR and item.MR() or 0
+            local svf = item.svFire and item.svFire() or item.FR and item.FR() or 0
+            local svc = item.svCold and item.svCold() or item.CR and item.CR() or 0
+            local svd = item.svDisease and item.svDisease() or item.DR and item.DR() or 0
+            local svp = item.svPoison and item.svPoison() or item.PR and item.PR() or 0
             
-            local hpregen = item.HPRegen() or 0
-            local manaregen = item.ManaRegen() or 0
+            local hpregen = item.HPRegen and item.HPRegen() or 0
+            local manaregen = item.ManaRegen and item.ManaRegen() or 0
             
             local focus = item.Focus() or ""
             
@@ -130,22 +130,22 @@ local function sendData(targetDriver)
                     local aHp = aug.Item.HP() or 0
                     local aMana = aug.Item.Mana() or 0
                     
-                    local aStr = aug.Item.STR() or 0
-                    local aSta = aug.Item.STA() or 0
-                    local aInt = aug.Item.INT() or 0
-                    local aWis = aug.Item.WIS() or 0
-                    local aAgi = aug.Item.AGI() or 0
-                    local aDex = aug.Item.DEX() or 0
-                    local aCha = aug.Item.CHA() or 0
+                    local aStr = aug.Item.STR and aug.Item.STR() or 0
+                    local aSta = aug.Item.STA and aug.Item.STA() or 0
+                    local aInt = aug.Item.INT and aug.Item.INT() or 0
+                    local aWis = aug.Item.WIS and aug.Item.WIS() or 0
+                    local aAgi = aug.Item.AGI and aug.Item.AGI() or 0
+                    local aDex = aug.Item.DEX and aug.Item.DEX() or 0
+                    local aCha = aug.Item.CHA and aug.Item.CHA() or 0
                     
-                    local aSvm = aug.Item.SvMagic() or 0
-                    local aSvf = aug.Item.SvFire() or 0
-                    local aSvc = aug.Item.SvCold() or 0
-                    local aSvd = aug.Item.SvDisease() or 0
-                    local aSvp = aug.Item.SvPoison() or 0
+                    local aSvm = aug.Item.svMagic and aug.Item.svMagic() or aug.Item.MR and aug.Item.MR() or 0
+                    local aSvf = aug.Item.svFire and aug.Item.svFire() or aug.Item.FR and aug.Item.FR() or 0
+                    local aSvc = aug.Item.svCold and aug.Item.svCold() or aug.Item.CR and aug.Item.CR() or 0
+                    local aSvd = aug.Item.svDisease and aug.Item.svDisease() or aug.Item.DR and aug.Item.DR() or 0
+                    local aSvp = aug.Item.svPoison and aug.Item.svPoison() or aug.Item.PR and aug.Item.PR() or 0
                     
-                    local aHpregen = aug.Item.HPRegen() or 0
-                    local aManaregen = aug.Item.ManaRegen() or 0
+                    local aHpregen = aug.Item.HPRegen and aug.Item.HPRegen() or 0
+                    local aManaregen = aug.Item.ManaRegen and aug.Item.ManaRegen() or 0
                     
                     local aFocus = aug.Item.Focus() or ""
                     
