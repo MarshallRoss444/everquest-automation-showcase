@@ -82,7 +82,7 @@ local function parseFocus(fName)
         elseif attrib == 348 then desc = desc .. "Mana Proc (" .. val .. "); "
         elseif attrib == 142 then desc = desc .. "Max HP " .. val .. "; "
         elseif attrib == 10 then desc = desc .. "Proc/Direct Dmg (" .. val .. "); "
-        elseif attrib == 11 then desc = desc .. "Haste " .. (val-100) .. "%; "
+        elseif attrib == 11 then desc = desc .. "Hate " .. (val-100) .. "%; "
         end
     end
     
@@ -207,15 +207,6 @@ local function sendData(targetDriver)
             
             local dataLine = string.format("%s,%s,Item,%d-%s,,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s,%s",
                 me, myClass, i, sName, iName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, finalFocusName, finalFocusDesc, finalFocusType)
-            
-            mq.cmdf("/dex %s /gearlog_add %s", targetDriver, dataLine)
-            mq.delay(30)
-        end
-    end
-end
-            
-            local dataLine = string.format("%s,%s,Item,%d-%s,,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s",
-                me, myClass, i, sName, iName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, finalFocusName, finalFocusDesc)
             
             mq.cmdf("/dex %s /gearlog_add %s", targetDriver, dataLine)
             mq.delay(30)
