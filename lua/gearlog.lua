@@ -1,7 +1,7 @@
 local mq = require('mq')
 
 -- ==============================================================================
--- GearLog MMO - Lua Edition (ID-Based Focus Parsing)
+-- GearLog MMO - Lua Edition (Ultra-Compatible ROF2 Build)
 -- ==============================================================================
 local args = {...}
 local mode = args[1] or "collect"
@@ -9,26 +9,20 @@ local DRIVER_NAME = "ExampleTank"
 local CSV_FILENAME = mq.TLO.MacroQuest.Path("Logs")() .. "\\MyGearLog.csv"
 local INVENTORY_SLOTS = 21
 
--- Helper function to parse focus effect by ID
-local function parseFocusByID(spellID)
-    if not spellID or spellID == 0 then return "" end
+-- Helper function to parse focus effect (Uses Spell TLO by Name)
+local function parseFocus(focusName)
+    if not focusName or focusName == "" or focusName == "NULL" then return "" end
     
-    local spell = mq.TLO.Spell(spellID)
-    if not spell() then return "" end
+    local spell = mq.TLO.Spell(focusName)
+    if not spell() or spell.ID() == 0 then return "" end
     
     local desc = ""
     local isBeneficial = nil
     
     -- Check for SPA 138 (Beneficial/Detrimental restriction)
     for i=1, 12 do
-        local spa = 0
-        pcall(function() spa = spell.SPA(i)() or 0 end)
-        -- Fallback for very old builds
-        if spa == 0 then pcall(function() spa = spell.Attrib(i)() or 0 end) end
-        
-        local base = 0
-        pcall(function() base = spell.Base(i)() or 0 end)
-
+        local spa = spell.SPA(i)() or 0
+        local base = spell.Base(i)() or 0
         if spa == 138 then
             if base == 1 then isBeneficial = true
             elseif base == 0 then isBeneficial = false end
@@ -39,14 +33,10 @@ local function parseFocusByID(spellID)
     if isBeneficial == true then prefix = "Bene "
     elseif isBeneficial == false then prefix = "Detri " end
 
-    -- Find the actual effect
+    -- find the actual effect
     for i=1, 12 do
-        local spa = 0
-        pcall(function() spa = spell.SPA(i)() or 0 end)
-        if spa == 0 then pcall(function() spa = spell.Attrib(i)() or 0 end) end
-        
-        local base = 0
-        pcall(function() base = spell.Base(i)() or 0 end)
+        local spa = spell.SPA(i)() or 0
+        local base = spell.Base(i)() or 0
         
         if spa > 0 and base ~= 0 then
             if spa == 15 or spa == 127 then desc = desc .. string.format("%sCast Time %d%%; ", prefix, base)
@@ -69,21 +59,30 @@ end
 local function startCollecting()
     printf("\ag[GearLog]\ax Starting collection...")
     local file, err = io.open(CSV_FILENAME, "w")
-    if not file then return end
+    if not file then 
+        printf("\ar[GearLog]\ax Error: %s", err)
+        return 
+    end
     file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusDesc\n")
     file:close()
     
     mq.bind('/gearlog_add', function(...)
+        local data = table.concat({...}, " ")
         local f = io.open(CSV_FILENAME, "a")
-        if f then f:write(table.concat({...}, " ") .. "\n") f:close() end
+        if f then f:write(data .. "\n") f:close() end
     end)
     
     mq.cmdf("/dgae /lua run gearlog send %s", mq.TLO.Me.Name())
     mq.cmdf("/lua run gearlog send %s", mq.TLO.Me.Name())
     
-    mq.delay(45000) -- Listen for 45s
+    local endTime = os.time() + 45
+    while os.time() < endTime do
+        mq.doevents()
+        mq.delay(100)
+    end
+    
     mq.unbind('/gearlog_add')
-    printf("\ag[GearLog]\ax Complete!")
+    printf("\ag[GearLog]\ax Complete! Saved to %s", CSV_FILENAME)
 end
 
 -- ==============================================================================
@@ -99,44 +98,33 @@ local function sendData(targetDriver)
             local slotName = string.format("%d-%s", i, mq.TLO.InvSlot(i).Name())
             local itemName = item.Name() or ""
             
-            -- Stats
+            -- Use raw TLO strings for base stats to be safest
             local ac = item.AC() or 0
             local hp = item.HP() or 0
             local mana = item.Mana() or 0
-            local str = item.STR and item.STR() or 0
-            local sta = item.STA and item.STA() or 0
-            local int = item.INT and item.INT() or 0
-            local wis = item.WIS and item.WIS() or 0
-            local agi = item.AGI and item.AGI() or 0
-            local dex = item.DEX and item.DEX() or 0
-            local cha = item.CHA and item.CHA() or 0
-            local svm = item.svMagic and item.svMagic() or item.MR and item.MR() or 0
-            local svf = item.svFire and item.svFire() or item.FR and item.FR() or 0
-            local svc = item.svCold and item.svCold() or item.CR and item.CR() or 0
-            local svd = item.svDisease and item.svDisease() or item.DR and item.DR() or 0
-            local svp = item.svPoison and item.svPoison() or item.PR and item.PR() or 0
-            local hpregen = item.HPRegen and item.HPRegen() or 0
-            local manaregen = item.ManaRegen and item.ManaRegen() or 0
+            local str = item.STR() or 0
+            local sta = item.STA() or 0
+            local int = item.INT() or 0
+            local wis = item.WIS() or 0
+            local agi = item.AGI() or 0
+            local dex = item.DEX() or 0
+            local cha = item.CHA() or 0
+            local svm = item.svMagic() or item.MR() or 0
+            local svf = item.svFire() or item.FR() or 0
+            local svc = item.svCold() or item.CR() or 0
+            local svd = item.svDisease() or item.DR() or 0
+            local svp = item.svPoison() or item.PR() or 0
+            local hpregen = item.HPRegen() or 0
+            local manaregen = item.ManaRegen() or 0
             
-            -- Focus by ID
-            local focusName = ""
-            local focusID = 0
-            local f = item.Focus and item.Focus()
-            if f and f.ID() > 0 then
-                focusID = f.ID()
-                focusName = f.Name()
-            else
-                local s = item.Spell and item.Spell()
-                if s and s.ID() > 0 then
-                    focusID = s.ID()
-                    focusName = s.Name()
-                end
-            end
+            -- Exact TLO match for original macro: item.Spell()
+            local focus = item.Spell() or ""
+            if focus == "NULL" then focus = "" end
             
-            local focusDesc = parseFocusByID(focusID)
+            local focusDesc = parseFocus(focus)
             
             local dataLine = string.format("%s,%s,Item,%s,,\"%s\",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,\"%s\",\"%s\"",
-                me, myClass, slotName, itemName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, focusName, focusDesc)
+                me, myClass, slotName, itemName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, focus, focusDesc)
             
             mq.cmdf("/dex %s /gearlog_add %s", targetDriver, dataLine)
             mq.delay(20)
