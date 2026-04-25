@@ -54,7 +54,9 @@ local function generateReport()
     for name, data in pairs(characters) do
         local profile = weights.ClassMap[data.class] or weights.ClassMap.WAR
         local baseScore = 0
+        local totalMana = 0
         for _, item in ipairs(data.items) do
+            totalMana = totalMana + item.Mana
             baseScore = baseScore + (item.AC * profile.AC) + (item.HP * profile.HP) + (item.Mana * profile.Mana) +
                         (item.STR * profile.STR) + (item.STA * profile.STA) + (item.INT * profile.INT) + (item.WIS * profile.WIS) +
                         (item.HPRegen * profile.HPRegen) + (item.ManaRegen * profile.ManaRegen) +
@@ -62,11 +64,18 @@ local function generateReport()
         end
         
         local focusScore = 0
-        for key, val in pairs(data.focuses) do
-            if profile[key] then focusScore = focusScore + (val * profile[key]) end
+        local hasMana = (totalMana > 0)
+        for key, rawVal in pairs(data.focuses) do
+            local val = weights.normalizeValue(rawVal, key)
+            if profile[key] then
+                local isSpellFocus = key:find("ManaPres") or key:find("SpellDmg") or key:find("Healing") or key:find("CastTime")
+                if not isSpellFocus or hasMana then
+                    focusScore = focusScore + (val * profile[key])
+                end
+            end
         end
         
-        table.insert(sortedChars, { name = name, class = data.class, base = baseScore, focus = focusScore, total = baseScore + focusScore })
+        table.insert(sortedChars, { name = name, class = data.class, base = baseScore, focus = focusScore, total = baseScore + focusScore, mana = totalMana })
     end
     
     table.sort(sortedChars, function(a, b) return a.total > b.total end)
@@ -74,7 +83,7 @@ local function generateReport()
     for _, c in ipairs(sortedChars) do
         rf:write(string.format("NAME: %-15s | CLASS: %-4s | TOTAL: %d\n", c.name, c.class, c.total))
         rf:write(string.format("  -> Base Stat Score:  %d (Raw AC/HP/Dam/Del)\n", c.base))
-        rf:write(string.format("  -> Focus Effect Score: %d (Strict Role-Based)\n", c.focus))
+        rf:write(string.format("  -> Focus Effect Score: %d (Role-Based Filtering)\n", c.focus))
         rf:write("  ----------------------------------------------------------\n")
     end
     rf:close()
@@ -116,16 +125,25 @@ local function scoreRaid()
     local results = {}
     for name, data in pairs(characters) do
         local totalScore = 0
+        local totalMana = 0
         local profile = weights.ClassMap[data.class] or weights.ClassMap.WAR
         for _, item in ipairs(data.items) do
+            totalMana = totalMana + item.Mana
             totalScore = totalScore + (item.AC * profile.AC) + (item.HP * profile.HP) + (item.Mana * profile.Mana) +
                         (item.STR * profile.STR) + (item.STA * profile.STA) + (item.INT * profile.INT) + (item.WIS * profile.WIS) +
                         (item.AGI * profile.AGI) + (item.DEX * profile.DEX) + (item.HPRegen * profile.HPRegen) + (item.ManaRegen * profile.ManaRegen) +
                         (item.Damage * profile.Damage) + (item.Delay * profile.Delay) +
                         (item.SvM * profile.SvMagic) + (item.SvF * profile.SvFire) + (item.SvC * profile.SvCold) + (item.SvD * profile.SvDisease) + (item.SvP * profile.SvPoison)
         end
-        for key, val in pairs(data.focuses) do
-            if profile[key] then totalScore = totalScore + (val * profile[key]) end
+        local hasMana = (totalMana > 0)
+        for key, rawVal in pairs(data.focuses) do
+            local val = weights.normalizeValue(rawVal, key)
+            if profile[key] then 
+                local isSpellFocus = key:find("ManaPres") or key:find("SpellDmg") or key:find("Healing") or key:find("CastTime")
+                if not isSpellFocus or hasMana then
+                    totalScore = totalScore + (val * profile[key]) 
+                end
+            end
         end
         table.insert(results, { name = name, class = data.class, score = math.floor(totalScore) })
     end

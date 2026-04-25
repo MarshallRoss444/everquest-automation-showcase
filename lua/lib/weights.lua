@@ -7,7 +7,7 @@ local TANK = {
     AC = 12.0, HP = 2.0, Mana = 0.0, STR = 1.0, STA = 3.0, AGI = 1.0, DEX = 1.0, INT = 0.0, WIS = 0.0, CHA = 0.0,
     SvMagic = 2.0, SvFire = 2.0, SvCold = 2.0, SvDisease = 2.0, SvPoison = 2.0,
     HPRegen = 127.0.0.1, ManaRegen = 0.0,
-    Damage = 50.0, Delay = -20.0,
+    Damage = 0.0, Delay = 0.0,
     -- Tanks ONLY care about Defense and Aggro
     Focus_Haste = 20, 
     Focus_Dodge = 100, 
@@ -120,11 +120,25 @@ function Weights.parseValue(str)
     return tonumber(val) or 0
 end
 
-function Weights.calculateItemScore(itemData, classShortName, characterBestFocuses)
+-- Helper: Normalize and Cap focus values to prevent "Cleave 77" from breaking math
+function Weights.normalizeValue(val, key)
+    if not val or val == 0 then return 0 end
+    
+    -- Cleave, Accuracy, Ferocity usually use raw numbers (e.g. 77, 100)
+    -- Percentages (Mana Pres, etc) usually top out at 30-50%.
+    if val > 50 then
+        -- For Cleave 77, treat it as a high-tier (e.g. Tier 8 = 40 pts)
+        return 20 + math.floor(val / 5) 
+    end
+    return val
+end
+
+function Weights.calculateItemScore(itemData, classShortName, characterBestFocuses, characterMana)
     local profile = Weights.ClassMap[classShortName] or Weights.ClassMap.WAR 
     local score = 0
+    local hasMana = (tonumber(characterMana or 0) > 0)
 
-    -- 1. Base Stats
+    -- 1. Base Stats (Primary Driver)
     score = score + (tonumber(itemData.AC or 0) * profile.AC)
     score = score + (tonumber(itemData.HP or 0) * profile.HP)
     score = score + (tonumber(itemData.Mana or 0) * profile.Mana)
@@ -144,17 +158,22 @@ function Weights.calculateItemScore(itemData, classShortName, characterBestFocus
     score = score + (tonumber(itemData.SvD or 0) * profile.SvDisease)
     score = score + (tonumber(itemData.SvP or 0) * profile.SvPoison)
 
-    -- 2. Focus Effects (Non-Stacking Logic)
+    -- 2. Focus Effects (Secondary Driver)
     if itemData.FocusDesc and itemData.FocusDesc ~= "" then
         for part in itemData.FocusDesc:gmatch("([^|;%-]+)") do
             local key = Weights.getFocusKey(part)
-            local val = Weights.parseValue(part)
+            local rawVal = Weights.parseValue(part)
+            local val = Weights.normalizeValue(rawVal, key)
             
             if key and val > 0 and (profile[key] or 0) > 0 then
-                local currentBest = characterBestFocuses[key] or 0
-                if val > currentBest then
-                    local improvement = val - currentBest
-                    score = score + (improvement * profile[key])
+                -- ROLE PROTECTION: Strip spell focuses from non-mana users
+                local isSpellFocus = key:find("ManaPres") or key:find("SpellDmg") or key:find("Healing") or key:find("CastTime")
+                if not isSpellFocus or hasMana then
+                    local currentBest = characterBestFocuses[key] or 0
+                    if val > currentBest then
+                        local improvement = val - currentBest
+                        score = score + (improvement * profile[key])
+                    end
                 end
             end
         end

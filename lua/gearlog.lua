@@ -129,9 +129,9 @@ local function sendData(targetDriver)
             local hpr = (item.HPRegen and item.HPRegen()) or 0
             local mnr = (item.ManaRegen and item.ManaRegen()) or 0
             
-            -- Damage and Delay (New)
+            -- Damage and Delay (Fixed for ROF2)
             local dam = (item.Damage and item.Damage()) or 0
-            local del = (item.Delay and item.Delay()) or 0
+            local del = (item.ItemDelay and item.ItemDelay()) or (item.Delay and item.Delay()) or 0
             
             -- Resists (using dual lookup for compatibility)
             local svm = (item.MR and item.MR()) or (item.SvMagic and item.SvMagic()) or 0
