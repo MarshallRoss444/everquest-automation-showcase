@@ -128,8 +128,8 @@ local function startCollecting()
     end)
     
     mq.cmdf("/dgae /lua run gearlog send %s", mq.TLO.Me.Name())
-    -- Local collection (ExampleTank)
-    sendData(mq.TLO.Me.Name())
+    -- Local collection (ExampleTank) - call sendData with 'local' flag
+    sendData("local")
     
     local endTime = os.time() + 45
     while os.time() < endTime do
@@ -225,7 +225,12 @@ local function sendData(targetDriver)
             local dataLine = string.format("%s,%s,Item,%d-%s,,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s,%s",
                 me, myClass, i, sName, iName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, finalFocusName, finalFocusType, finalFocusDesc)
             
-            mq.cmdf("/dex %s /gearlog_add \"%s\"", targetDriver, dataLine)
+            if targetDriver == "local" then
+                local f = io.open(CSV_FILENAME, "a")
+                if f then f:write(dataLine .. "\n") f:close() end
+            else
+                mq.cmdf("/dex %s /gearlog_add %s", targetDriver, dataLine)
+            end
             mq.delay(30)
         end
     end
