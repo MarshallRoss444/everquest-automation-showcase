@@ -47,46 +47,46 @@ local function parseFocus(fName)
     local prefix = isBene and "Bene " or "Detri "
     for attrib, val in pairs(effects) do
         -- Mapping based on ROF2 Attrib/SPA IDs
-        if attrib == 15 or attrib == 127 then desc = desc .. string.format("%sCast Time %d%%; ", prefix, val)
-        elseif attrib == 108 or attrib == 132 then desc = desc .. string.format("%sMana Pres %d%%; ", prefix, val)
-        elseif attrib == 104 or attrib == 124 then desc = desc .. string.format("%sSpell Dmg %d%%; ", prefix, val)
-        elseif attrib == 105 or attrib == 125 then desc = desc .. "Healing " .. val .. "%; "
-        elseif attrib == 128 then desc = desc .. string.format("%sDuration %d%%; ", prefix, val)
-        elseif attrib == 129 then desc = desc .. string.format("%sRange %d%%; ", prefix, val)
-        elseif attrib == 114 then desc = desc .. "Hate " .. val .. "%; "
-        elseif attrib == 178 then desc = desc .. "Melee Lifetap " .. val .. "%; "
-        elseif attrib == 174 then desc = desc .. "Dodge " .. val .. "%; "
-        elseif attrib == 175 then desc = desc .. "Parry " .. val .. "%; "
-        elseif attrib == 168 then desc = desc .. "Melee Crit " .. val .. "%; "
-        elseif attrib == 192 then desc = desc .. "Spell Crit " .. val .. "%; "
-        elseif attrib == 169 then desc = desc .. "Cleave " .. val .. "; "
-        elseif attrib == 100 then desc = desc .. "Ferocity " .. val .. "; "
-        elseif attrib == 4 or attrib == 216 or attrib == 184 then desc = desc .. "Accuracy " .. val .. "; "
-        elseif attrib == 177 then desc = desc .. "Double Attack " .. val .. "%; "
-        elseif attrib == 294 then desc = desc .. "Spell Crit Chance " .. val .. "%; "
-        elseif attrib == 273 then desc = desc .. "Melee Crit Chance " .. val .. "%; "
-        elseif attrib == 296 then desc = desc .. "Inc Spell Dmg " .. val .. "%; "
-        elseif attrib == 297 then desc = desc .. "Inc Melee Dmg " .. val .. "%; "
+        if attrib == 15 or attrib == 127 then desc = desc .. string.format("%sCast Time %d%% - ", prefix, val)
+        elseif attrib == 108 or attrib == 132 then desc = desc .. string.format("%sMana Pres %d%% - ", prefix, val)
+        elseif attrib == 104 or attrib == 124 then desc = desc .. string.format("%sSpell Dmg %d%% - ", prefix, val)
+        elseif attrib == 105 or attrib == 125 then desc = desc .. "Healing " .. val .. "% - "
+        elseif attrib == 128 then desc = desc .. string.format("%sDuration %d%% - ", prefix, val)
+        elseif attrib == 129 then desc = desc .. string.format("%sRange %d%% - ", prefix, val)
+        elseif attrib == 114 then desc = desc .. "Hate " .. val .. "% - "
+        elseif attrib == 178 then desc = desc .. "Melee Lifetap " .. val .. "% - "
+        elseif attrib == 174 then desc = desc .. "Dodge " .. val .. "% - "
+        elseif attrib == 175 then desc = desc .. "Parry " .. val .. "% - "
+        elseif attrib == 168 then desc = desc .. "Melee Crit " .. val .. "% - "
+        elseif attrib == 192 then desc = desc .. "Spell Crit " .. val .. "% - "
+        elseif attrib == 169 then desc = desc .. "Cleave " .. val .. " - "
+        elseif attrib == 100 then desc = desc .. "Ferocity " .. val .. " - "
+        elseif attrib == 4 or attrib == 216 or attrib == 184 then desc = desc .. "Accuracy " .. val .. " - "
+        elseif attrib == 177 then desc = desc .. "Double Attack " .. val .. "% - "
+        elseif attrib == 294 then desc = desc .. "Spell Crit Chance " .. val .. "% - "
+        elseif attrib == 273 then desc = desc .. "Melee Crit Chance " .. val .. "% - "
+        elseif attrib == 296 then desc = desc .. "Inc Spell Dmg " .. val .. "% - "
+        elseif attrib == 297 then desc = desc .. "Inc Melee Dmg " .. val .. "% - "
         elseif attrib == 85 then 
             if val > 1000 then
                 local procSpell = mq.TLO.Spell(val)
-                desc = desc .. string.format("Proc: %s; ", procSpell() or "Unknown")
+                desc = desc .. string.format("Proc: %s - ", procSpell() or "Unknown")
             else
-                desc = desc .. "Proc Rate " .. val .. "%; "
+                desc = desc .. "Proc Rate " .. val .. "% - "
             end
-        elseif attrib == 13 then desc = desc .. "See Invis; "
-        elseif attrib == 66 then desc = desc .. "Ultravision; "
-        elseif attrib == 14 then desc = desc .. "Enduring Breath; "
-        elseif attrib == 46 then desc = desc .. "Poison Resist " .. val .. "; "
-        elseif attrib == 47 then desc = desc .. "Magic Resist " .. val .. "; "
-        elseif attrib == 48 then desc = desc .. "Fire Resist " .. val .. "; "
-        elseif attrib == 50 then desc = desc .. "Cold Resist " .. val .. "; "
-        elseif attrib == 49 then desc = desc .. "Disease Resist " .. val .. "; "
-        elseif attrib == 383 then desc = desc .. "Sympathetic Proc; "
-        elseif attrib == 348 then desc = desc .. "Mana Proc (" .. val .. "); "
-        elseif attrib == 142 and val > 10 then desc = desc .. "Max HP " .. val .. "; "
-        elseif attrib == 10 then desc = desc .. "Proc/Direct Dmg (" .. val .. "); "
-        elseif attrib == 11 then desc = desc .. "Hate " .. (val-100) .. "%; "
+        elseif attrib == 13 then desc = desc .. "See Invis - "
+        elseif attrib == 66 then desc = desc .. "Ultravision - "
+        elseif attrib == 14 then desc = desc .. "Enduring Breath - "
+        elseif attrib == 46 then desc = desc .. "Poison Resist " .. val .. " - "
+        elseif attrib == 47 then desc = desc .. "Magic Resist " .. val .. " - "
+        elseif attrib == 48 then desc = desc .. "Fire Resist " .. val .. " - "
+        elseif attrib == 50 then desc = desc .. "Cold Resist " .. val .. " - "
+        elseif attrib == 49 then desc = desc .. "Disease Resist " .. val .. " - "
+        elseif attrib == 383 then desc = desc .. "Sympathetic Proc - "
+        elseif attrib == 348 then desc = desc .. "Mana Proc (" .. val .. ") - "
+        elseif attrib == 142 and val > 10 then desc = desc .. "Max HP " .. val .. " - "
+        elseif attrib == 10 then desc = desc .. "Proc/Direct Dmg (" .. val .. ") - "
+        elseif attrib == 11 then desc = desc .. "Hate " .. (val-100) .. "% - "
         end
     end
     
@@ -102,11 +102,14 @@ local function parseFocus(fName)
             local s1 = tostring(s.Base(1)() or "?")
             sDesc = sDesc:gsub("#1", s1):gsub("@1", s1)
             
+            -- Replace semicolons in internal description too
+            sDesc = sDesc:gsub(";", " -")
+
             if desc == "" then desc = sDesc else desc = desc .. " | " .. sDesc end
         end
     end
     
-    if desc:len() > 0 then desc = desc:sub(1, -3) end
+    if desc:len() > 0 then desc = desc:sub(1, -4) end
     if desc:len() > 0 and desc:sub(-2) == " |" then desc = desc:sub(1, -3) end
     return desc:gsub(",", "")
 end
@@ -222,7 +225,7 @@ local function sendData(targetDriver)
             local dataLine = string.format("%s,%s,Item,%d-%s,,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s,%s",
                 me, myClass, i, sName, iName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, finalFocusName, finalFocusType, finalFocusDesc)
             
-            mq.cmdf("/dex %s /gearlog_add %s", targetDriver, dataLine)
+            mq.cmdf("/dex %s /gearlog_add \"%s\"", targetDriver, dataLine)
             mq.delay(30)
         end
     end
