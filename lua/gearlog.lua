@@ -1,7 +1,7 @@
 local mq = require('mq')
 
 -- ==============================================================================
--- GearLog MMO - Version 15 (ROBUST TRANSMISSION)
+-- GearLog MMO - Version 15.1 (FIXED SCOPING)
 -- ==============================================================================
 local args = {...}
 local mode = args[1] or "collect"
@@ -77,7 +77,7 @@ local function parseFocus(fName)
         elseif attrib == 348 then desc = desc .. "Mana Proc (" .. val .. ") - "
         elseif attrib == 142 and val > 10 then desc = desc .. "Max HP " .. val .. " - "
         elseif attrib == 10 then desc = desc .. "Proc/Direct Dmg (" .. val .. ") - "
-        elseif attrib == 11 then desc = desc .. "Haste " .. (val-100) .. "% - "
+        elseif attrib == 11 then desc = desc .. "Hate " .. (val-100) .. "% - "
         end
     end
     
@@ -92,7 +92,7 @@ local function parseFocus(fName)
     end
     
     if desc:len() > 0 then desc = desc:sub(1, -4) end
-    return desc:gsub(",", " "):gsub("|", "-") -- Final safety cleanup
+    return desc:gsub(",", " "):gsub("|", "-") 
 end
 
 local function writeLine(line)
@@ -103,30 +103,7 @@ local function writeLine(line)
     end
 end
 
-local function startCollecting()
-    printf("\ag[GearLog]\ax Starting Version 15 (Robust Mode)")
-    local file = io.open(CSV_FILENAME, "w")
-    if not file then return end
-    file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusType,FocusDesc\n")
-    file:close()
-    
-    mq.bind('/gearlog_add', function(data)
-        if not data then return end
-        writeLine(data)
-    end)
-    
-    mq.cmdf("/dgae /lua run gearlog send %s", mq.TLO.Me.Name())
-    sendData("local") -- Driver processes himself immediately
-    
-    local endTime = os.time() + 30
-    while os.time() < endTime do
-        mq.doevents()
-        mq.delay(100)
-    end
-    mq.unbind('/gearlog_add')
-    printf("\ag[GearLog]\ax Collection Complete!")
-end
-
+-- sendData must be defined BEFORE startCollecting calls it
 local function sendData(targetDriver)
     local me = mq.TLO.Me.Name()
     local myClass = mq.TLO.Me.Class.ShortName()
@@ -139,11 +116,9 @@ local function sendData(targetDriver)
             local iName = tostring(item.Name()):gsub(",", ""):gsub("|", "")
             local sName = tostring(mq.TLO.InvSlot(i).Name()):gsub(",", ""):gsub("|", "")
             
-            -- Focus Collection
             local focusNames, focusDescs, focusTypes = {}, {}, {}
             local seen = {}
             
-            -- Skill Mod check
             local sm, sa = "", 0
             pcall(function() 
                 sm = tostring(item.SkillModifier() or item.SkillModType() or "")
@@ -167,7 +142,6 @@ local function sendData(targetDriver)
                 end
             end
             
-            -- Construct Piped Payload
             local data = string.format("%s|%s|Item|%d-%s||%s|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%s|%s|%s",
                 me, myClass, i, sName, iName, item.AC() or 0, item.HP() or 0, item.Mana() or 0,
                 item.STR() or 0, item.STA() or 0, item.INT() or 0, item.WIS() or 0, item.AGI() or 0, item.DEX() or 0, item.CHA() or 0,
@@ -186,6 +160,30 @@ local function sendData(targetDriver)
     if targetDriver ~= "local" then
         printf("\ay[GearLog:Send]\ax Sent %d items to %s", count, targetDriver)
     end
+end
+
+local function startCollecting()
+    printf("\ag[GearLog]\ax Initializing Robust Collection...")
+    local file = io.open(CSV_FILENAME, "w")
+    if not file then return end
+    file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusType,FocusDesc\n")
+    file:close()
+    
+    mq.bind('/gearlog_add', function(data)
+        if not data then return end
+        writeLine(data)
+    end)
+    
+    mq.cmdf("/dgae /lua run gearlog send %s", mq.TLO.Me.Name())
+    sendData("local") -- Now safe to call
+    
+    local endTime = os.time() + 30
+    while os.time() < endTime do
+        mq.doevents()
+        mq.delay(100)
+    end
+    mq.unbind('/gearlog_add')
+    printf("\ag[GearLog]\ax Complete!")
 end
 
 if mode == "collect" then startCollecting()
