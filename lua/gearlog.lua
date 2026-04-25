@@ -1,7 +1,7 @@
 local mq = require('mq')
 
 -- ==============================================================================
--- GearLog MMO - Lua Edition (Ultra-Compatible ROF2 Build)
+-- GearLog MMO - Ultra-Aggressive ROF2 Build
 -- ==============================================================================
 local args = {...}
 local mode = args[1] or "collect"
@@ -9,34 +9,38 @@ local DRIVER_NAME = "ExampleTank"
 local CSV_FILENAME = mq.TLO.MacroQuest.Path("Logs")() .. "\\MyGearLog.csv"
 local INVENTORY_SLOTS = 21
 
--- Helper function to parse focus effect (Uses Spell TLO by Name)
-local function parseFocus(focusName)
-    if not focusName or focusName == "" or focusName == "NULL" then return "" end
+-- Helper function to parse focus effect (Ultra-Compatible)
+local function parseFocus(fName)
+    local name = tostring(fName or "")
+    if name == "" or name == "NULL" or name == "nil" then return "" end
     
-    local spell = mq.TLO.Spell(focusName)
-    if not spell() or spell.ID() == 0 then return "" end
+    local s = mq.TLO.Spell(name)
+    if not s or not s() or s.ID() == 0 then return "" end
     
     local desc = ""
-    local isBeneficial = nil
+    local isBene = nil
     
-    -- Check for SPA 138 (Beneficial/Detrimental restriction)
+    -- Check for SPA 138 (Bene/Detri) using multiple property styles
     for i=1, 12 do
-        local spa = spell.SPA(i)() or 0
-        local base = spell.Base(i)() or 0
+        local spa = s.SPA(i)() or s.Attrib(i)() or 0
+        local base = s.Base(i)() or 0
         if spa == 138 then
-            if base == 1 then isBeneficial = true
-            elseif base == 0 then isBeneficial = false end
+            if base == 1 then isBene = true elseif base == 0 then isBene = false end
         end
     end
     
     local prefix = ""
-    if isBeneficial == true then prefix = "Bene "
-    elseif isBeneficial == false then prefix = "Detri " end
+    if isBene == true then prefix = "Bene " elseif isBene == false then prefix = "Detri " end
 
-    -- find the actual effect
+    -- Find effects using both s.Base(i) and s.Base1 style properties
     for i=1, 12 do
-        local spa = spell.SPA(i)() or 0
-        local base = spell.Base(i)() or 0
+        local spa = s.SPA(i)() or s.Attrib(i)() or 0
+        local base = s.Base(i)() or 0
+        -- Check legacy Base1, Base2 style if Base(i) was 0
+        if base == 0 then
+            local legacyBase = s["Base" .. i]
+            if legacyBase and legacyBase() then base = legacyBase() end
+        end
         
         if spa > 0 and base ~= 0 then
             if spa == 15 or spa == 127 then desc = desc .. string.format("%sCast Time %d%%; ", prefix, base)
@@ -57,12 +61,9 @@ end
 -- MODE: COLLECT
 -- ==============================================================================
 local function startCollecting()
-    printf("\ag[GearLog]\ax Starting collection...")
-    local file, err = io.open(CSV_FILENAME, "w")
-    if not file then 
-        printf("\ar[GearLog]\ax Error: %s", err)
-        return 
-    end
+    printf("\ag[GearLog]\ax Clearing CSV and listening for data...")
+    local file = io.open(CSV_FILENAME, "w")
+    if not file then return end
     file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusDesc\n")
     file:close()
     
@@ -82,7 +83,7 @@ local function startCollecting()
     end
     
     mq.unbind('/gearlog_add')
-    printf("\ag[GearLog]\ax Complete! Saved to %s", CSV_FILENAME)
+    printf("\ag[GearLog]\ax Complete! Check Logs/MyGearLog.csv")
 end
 
 -- ==============================================================================
@@ -94,11 +95,11 @@ local function sendData(targetDriver)
     
     for i = 0, INVENTORY_SLOTS do
         local item = mq.TLO.Me.Inventory(i)
-        if item() ~= nil then
-            local slotName = string.format("%d-%s", i, mq.TLO.InvSlot(i).Name())
-            local itemName = item.Name() or ""
+        if item and item() then
+            local slotName = string.format("%d-%s", i, mq.TLO.InvSlot(i).Name() or "unknown")
+            local itemName = item.Name() or "Unknown"
             
-            -- Use raw TLO strings for base stats to be safest
+            -- Stats (Evaluated directly)
             local ac = item.AC() or 0
             local hp = item.HP() or 0
             local mana = item.Mana() or 0
@@ -117,11 +118,17 @@ local function sendData(targetDriver)
             local hpregen = item.HPRegen() or 0
             local manaregen = item.ManaRegen() or 0
             
-            -- Exact TLO match for original macro: item.Spell()
-            local focus = item.Spell() or ""
-            if focus == "NULL" then focus = "" end
+            -- Focus Search (Try every possibility)
+            local focus = ""
+            local fRaw = item.Spell() or item.Focus() or ""
+            if tostring(fRaw) ~= "NULL" then focus = tostring(fRaw) end
             
-            local focusDesc = parseFocus(focus)
+            local focusDesc = ""
+            if focus ~= "" then 
+                focusDesc = parseFocus(focus)
+                -- Debug console log so you can see it working
+                printf("\ay[GearLog]\ax Found Focus: %s -> %s", focus, focusDesc)
+            end
             
             local dataLine = string.format("%s,%s,Item,%s,,\"%s\",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,\"%s\",\"%s\"",
                 me, myClass, slotName, itemName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, focus, focusDesc)
