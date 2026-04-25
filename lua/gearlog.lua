@@ -1,7 +1,7 @@
 local mq = require('mq')
 
 -- ==============================================================================
--- GearLog MMO - Emergency Stability Build
+-- GearLog MMO - FINAL REBUILT ROF2 BUILD
 -- ==============================================================================
 local args = {...}
 local mode = args[1] or "collect"
@@ -9,13 +9,11 @@ local DRIVER_NAME = "ExampleTank"
 local CSV_FILENAME = mq.TLO.MacroQuest.Path("Logs")() .. "\\MyGearLog.csv"
 local INVENTORY_SLOTS = 21
 
--- Helper: Parse Focus Math (Fixed 1% bug)
-local function parseFocus(fName)
-    local name = tostring(fName or "")
-    if name == "" or name == "NULL" or name == "nil" then return "" end
-    
-    local s = mq.TLO.Spell(name)
-    if not s or not s() or s.ID() == 0 then return "" end
+-- Helper: Robust Focus Parsing by ID
+local function parseFocusByID(sID)
+    if not sID or sID == 0 then return "" end
+    local s = mq.TLO.Spell(sID)
+    if not s or not s() then return "" end
     
     local desc = ""
     local isBene = false
@@ -29,7 +27,10 @@ local function parseFocus(fName)
         pcall(function()
             local b = math.abs(s.Base(i)() or 0)
             local m = math.abs(s.Max(i)() or 0)
-            val = math.max(b, m)
+            -- Pick the actual percentage value
+            if m > 1 then val = m
+            elseif b > 1 then val = b
+            else val = math.max(b, m) end
         end)
         
         if spa == 138 and s.Base(i)() == 1 then isBene = true
@@ -51,11 +52,11 @@ local function parseFocus(fName)
         end
     end
     
-    return desc:len() > 0 and desc:sub(1, -3) or ""
+    return desc:len() > 0 and desc:sub(1, -3):gsub(",", "") or ""
 end
 
 local function startCollecting()
-    printf("\ag[GearLog]\ax Starting Collection...")
+    printf("\ag[GearLog]\ax Initializing Centralized Collection...")
     local file = io.open(CSV_FILENAME, "w")
     if not file then return end
     file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusDesc\n")
@@ -87,10 +88,10 @@ local function sendData(targetDriver)
         pcall(function()
             local item = mq.TLO.Me.Inventory(i)
             if item and item() then
-                local iName = tostring(item.Name()):gsub(",", ""):gsub("\"", "")
+                local iName = tostring(item.Name()):gsub(",", "")
                 local sName = tostring(mq.TLO.InvSlot(i).Name()):gsub(",", "")
                 
-                -- Standard Stats
+                -- Stats
                 local ac = item.AC() or 0
                 local hp = item.HP() or 0
                 local mana = item.Mana() or 0
@@ -103,21 +104,29 @@ local function sendData(targetDriver)
                 local cha = item.CHA and item.CHA() or 0
                 local hpregen = item.HPRegen and item.HPRegen() or 0
                 local manaregen = item.ManaRegen and item.ManaRegen() or 0
-                
-                -- Crash-Proof Resists
                 local svm = item.MR and item.MR() or item.SvMagic and item.SvMagic() or 0
                 local svf = item.FR and item.FR() or item.SvFire and item.SvFire() or 0
                 local svc = item.CR and item.CR() or item.SvCold and item.SvCold() or 0
                 local svd = item.DR and item.DR() or item.SvDisease and item.SvDisease() or 0
                 local svp = item.PR and item.PR() or item.SvPoison and item.SvPoison() or 0
                 
-                -- Focus Name (The most stable property in your build)
-                local focusName = tostring(item.Spell)
-                if focusName == "NULL" or focusName == "nil" then focusName = "" end
-                
+                -- Focus Logic (Prioritize Focus over Spell)
+                local focusName = ""
                 local focusDesc = ""
-                if focusName ~= "" then
-                    focusDesc = parseFocus(focusName)
+                local fObj = item.Focus
+                local sObj = item.Spell
+                
+                local activeSpell = nil
+                if fObj and fObj() and fObj.ID() > 0 then
+                    activeSpell = fObj
+                elseif sObj and sObj() and sObj.ID() > 0 then
+                    activeSpell = sObj
+                end
+                
+                if activeSpell then
+                    focusName = activeSpell.Name():gsub(",", "")
+                    focusDesc = parseFocusByID(activeSpell.ID())
+                    printf("\ag[GearLog]\ax Found: %s (%s)", focusName, focusDesc)
                 end
                 
                 local dataLine = string.format("%s,%s,Item,%d-%s,,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s",
