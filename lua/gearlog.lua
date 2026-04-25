@@ -1,7 +1,7 @@
 local mq = require('mq')
 
 -- ==============================================================================
--- GearLog MMO - Bulletproof ROF2 Build
+-- GearLog MMO - Final Absolute Value ROF2 Build
 -- ==============================================================================
 local args = {...}
 local mode = args[1] or "collect"
@@ -9,79 +9,84 @@ local DRIVER_NAME = "ExampleTank"
 local CSV_FILENAME = mq.TLO.MacroQuest.Path("Logs")() .. "\\MyGearLog.csv"
 local INVENTORY_SLOTS = 21
 
--- Bulletproof Focus Parser
+-- Final Focus Parser - Uses absolute values to fix the 1% and negative value bugs
 local function parseFocus(focusName)
     if not focusName or focusName == "" or focusName == "NULL" then return "" end
     
     local desc = ""
-    local success, err = pcall(function()
+    pcall(function()
         local s = mq.TLO.Spell(focusName)
         if not s or not s() or s.ID() == 0 then return end
         
         local isBene = nil
-        
-        -- Safely extract SPA and Base arrays
         local spas = {}
-        local bases = {}
+        local values = {}
+        
         for i=1, 12 do
             local spa = 0
-            pcall(function() spa = s.SPA(i)() end)
-            if not spa or spa == 0 then pcall(function() spa = s.Attrib(i)() end) end
-            spas[i] = spa or 0
+            pcall(function() spa = s.SPA(i)() or s.Attrib(i)() or 0 end)
+            spas[i] = spa
             
-            local base = 0
-            pcall(function() base = s.Base(i)() end)
-            if not base or base == 0 then pcall(function() base = s["Base"..i]() end) end
-            bases[i] = base or 0
+            local v = 0
+            pcall(function()
+                -- Grab all possible value columns
+                local b = s.Base(i)() or 0
+                local m = s.Max(i)() or 0
+                local l = 0
+                if s.Limit then l = s.Limit(i)() or 0 end
+                
+                -- Use math.abs to handle negative mana pres/haste values
+                -- We take the largest absolute value that isn't the '1' flag
+                local potential = {math.abs(b), math.abs(m), math.abs(l)}
+                local high = 0
+                for _, val in ipairs(potential) do
+                    if val > high then high = val end
+                end
+                v = high
+            end)
+            values[i] = v
             
-            -- Check for SPA 138 (Bene/Detri)
-            if spas[i] == 138 then
-                if bases[i] == 1 then isBene = true elseif bases[i] == 0 then isBene = false end
+            -- SPA 138 check for Bene/Detri
+            if spa == 138 then
+                local rawVal = s.Base(i)() or 0
+                if rawVal == 1 then isBene = true elseif rawVal == 0 then isBene = false end
             end
         end
         
         local prefix = ""
         if isBene == true then prefix = "Bene " elseif isBene == false then prefix = "Detri " end
 
-        -- Map SPAs
         for i=1, 12 do
             local spa = spas[i]
-            local base = bases[i]
+            local val = values[i]
             
-            if spa > 0 and base ~= 0 then
-                if spa == 15 or spa == 127 then desc = desc .. string.format("%sCast Time %d%%; ", prefix, base)
-                elseif spa == 108 or spa == 132 then desc = desc .. string.format("%sMana Pres %d%%; ", prefix, base)
-                elseif spa == 104 or spa == 124 then desc = desc .. string.format("%sSpell Dmg %d%%; ", prefix, base)
-                elseif spa == 105 or spa == 125 then desc = desc .. string.format("Healing %d%%; ", base)
-                elseif spa == 128 then desc = desc .. string.format("%sDuration %d%%; ", prefix, base)
-                elseif spa == 129 then desc = desc .. string.format("%sRange %d%%; ", prefix, base)
+            -- Filter: Focus SPAs usually have values > 1 (1 is just a flag)
+            if spa > 0 and val > 1 then
+                if spa == 15 or spa == 127 then desc = desc .. string.format("%sCast Time %d%%; ", prefix, val)
+                elseif spa == 108 or spa == 132 then desc = desc .. string.format("%sMana Pres %d%%; ", prefix, val)
+                elseif spa == 104 or spa == 124 then desc = desc .. string.format("%sSpell Dmg %d%%; ", prefix, val)
+                elseif spa == 105 or spa == 125 then desc = desc .. string.format("Healing %d%%; ", val)
+                elseif spa == 128 then desc = desc .. string.format("%sDuration %d%%; ", prefix, val)
+                elseif spa == 129 then desc = desc .. string.format("%sRange %d%%; ", prefix, val)
                 end
             end
         end
     end)
     
-    if not success then
-        printf("\ar[GearLog]\ax Parse Error on '%s': %s", focusName, tostring(err))
-    end
-    
     if desc:len() > 0 then desc = desc:sub(1, -3) end
     return desc
 end
 
--- ==============================================================================
--- MODE: COLLECT
--- ==============================================================================
 local function startCollecting()
-    printf("\ag[GearLog]\ax Clearing CSV and listening for data...")
+    printf("\ag[GearLog]\ax Starting centralized collection...")
     local file = io.open(CSV_FILENAME, "w")
     if not file then return end
     file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusDesc\n")
     file:close()
     
     mq.bind('/gearlog_add', function(...)
-        local data = table.concat({...}, " ")
         local f = io.open(CSV_FILENAME, "a")
-        if f then f:write(data .. "\n") f:close() end
+        if f then f:write(table.concat({...}, " ") .. "\n") f:close() end
     end)
     
     mq.cmdf("/dgae /lua run gearlog send %s", mq.TLO.Me.Name())
@@ -94,24 +99,20 @@ local function startCollecting()
     end
     
     mq.unbind('/gearlog_add')
-    printf("\ag[GearLog]\ax Complete! Check Logs/MyGearLog.csv")
+    printf("\ag[GearLog]\ax Complete! File: Logs/MyGearLog.csv")
 end
 
--- ==============================================================================
--- MODE: SEND
--- ==============================================================================
 local function sendData(targetDriver)
     local me = mq.TLO.Me.Name()
     local myClass = mq.TLO.Me.Class.ShortName()
     
     for i = 0, INVENTORY_SLOTS do
-        local success, err = pcall(function()
+        pcall(function()
             local item = mq.TLO.Me.Inventory(i)
             if item and item() then
                 local slotName = string.format("%d-%s", i, mq.TLO.InvSlot(i).Name() or "unknown")
                 local itemName = item.Name() or "Unknown"
                 
-                -- Stats (Evaluated directly but protected by outer pcall)
                 local ac = item.AC() or 0
                 local hp = item.HP() or 0
                 local mana = item.Mana() or 0
@@ -130,16 +131,9 @@ local function sendData(targetDriver)
                 local hpregen = item.HPRegen() or 0
                 local manaregen = item.ManaRegen() or 0
                 
-                -- Bulletproof Focus Search
                 local focusName = ""
-                pcall(function()
-                    if item.Spell and item.Spell() then
-                        focusName = item.Spell.Name() or ""
-                    elseif item.Focus and item.Focus() then
-                        focusName = item.Focus.Name() or ""
-                    end
-                end)
-                
+                local fRaw = item.Spell() or item.Focus() or ""
+                if tostring(fRaw) ~= "NULL" then focusName = tostring(fRaw) end
                 local focusDesc = parseFocus(focusName)
                 
                 local dataLine = string.format("%s,%s,Item,%s,,\"%s\",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,\"%s\",\"%s\"",
@@ -149,11 +143,6 @@ local function sendData(targetDriver)
                 mq.delay(20)
             end
         end)
-        
-        -- If an item catastrophically fails, log the error but keep the script running!
-        if not success then
-            printf("\ar[GearLog]\ax Skipped slot %d due to error: %s", i, tostring(err))
-        end
     end
 end
 
