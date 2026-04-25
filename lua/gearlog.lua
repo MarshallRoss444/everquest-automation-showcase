@@ -1,7 +1,7 @@
 local mq = require('mq')
 
 -- ==============================================================================
--- GearLog MMO - Version 12 (Focus Fix)
+-- GearLog MMO - Version 13 (Brute Force ROF2 Build)
 -- ==============================================================================
 local args = {...}
 local mode = args[1] or "collect"
@@ -9,7 +9,7 @@ local DRIVER_NAME = "ExampleTank"
 local CSV_FILENAME = mq.TLO.MacroQuest.Path("Logs")() .. "\\MyGearLog.csv"
 local INVENTORY_SLOTS = 21
 
--- Helper: Clean strings for CSV safety
+-- Helper: Clean strings
 local function clean(str)
     if not str then return "" end
     local s = tostring(str)
@@ -17,50 +17,53 @@ local function clean(str)
     return s:match("^%s*(.-)%s*$") or ""
 end
 
--- Helper: Robust Focus Parsing
-local function parseFocus(spellObj)
-    if not spellObj or not spellObj() or spellObj.ID() == 0 then return "" end
+-- Helper: Brute Force Focus Parser
+local function parseFocus(sName)
+    local name = tostring(sName or "")
+    if name == "" or name == "NULL" or name == "nil" then return "" end
+    
+    local s = mq.TLO.Spell(name)
+    if not s or not s() or s.ID() == 0 then return "" end
     
     local desc = ""
     local isBene = nil
-    local effects = {}
-
-    for i=1, 12 do
+    
+    -- Brute force scan of the first 6 slots (where 99% of focuses live)
+    for i = 1, 6 do
         local spa = 0
-        pcall(function() spa = spellObj.SPA(i)() or spellObj.Attrib(i)() or 0 end)
-        
         local val = 0
-        pcall(function()
-            local b = math.abs(spellObj.Base(i)() or 0)
-            local m = math.abs(spellObj.Max(i)() or 0)
-            -- We want the actual percentage (usually > 1). 1 is often just a flag.
-            if m > 1 then val = m
-            elseif b > 1 then val = b
-            else val = math.max(b, m) end
-        end)
         
+        -- Try every possible property name for SPA/Attrib
+        pcall(function() spa = tonumber(s.SPA(i)()) or tonumber(s.Attrib(i)()) or 0 end)
+        
+        -- Try every possible property name for Value
+        pcall(function() 
+            local b = math.abs(tonumber(s.Base(i)()) or 0)
+            local m = math.abs(tonumber(s.Max(i)()) or 0)
+            local legacy = math.abs(tonumber(s["Base"..i]()) or 0)
+            val = math.max(b, m, legacy)
+        end)
+
         if spa == 138 then
-            local bVal = 0
-            pcall(function() bVal = spellObj.Base(i)() end)
-            if bVal == 1 then isBene = true elseif bVal == 0 then isBene = false end
-        elseif spa > 0 and val > 0 then
-            if not effects[spa] or val > effects[spa] then
-                effects[spa] = val
+            local raw = tonumber(s.Base(i)()) or 0
+            if raw == 1 then isBene = true elseif raw == 0 then isBene = false end
+        elseif spa > 0 and val > 1 then
+            local prefix = ""
+            if isBene == true then prefix = "Bene " elseif isBene == false then prefix = "Detri " end
+            
+            if spa == 15 or spa == 127 then desc = desc .. string.format("%sCast Time %d%%; ", prefix, val)
+            elseif spa == 108 or spa == 132 then desc = desc .. string.format("%sMana Pres %d%%; ", prefix, val)
+            elseif spa == 104 or spa == 124 then desc = desc .. string.format("%sSpell Dmg %d%%; ", prefix, val)
+            elseif spa == 105 or spa == 125 then desc = desc .. string.format("Healing %d%%; ", val)
+            elseif spa == 128 then desc = desc .. string.format("%sDuration %d%%; ", prefix, val)
+            elseif spa == 129 then desc = desc .. string.format("%sRange %d%%; ", prefix, val)
             end
         end
     end
     
-    local prefix = ""
-    if isBene == true then prefix = "Bene " elseif isBene == false then prefix = "Detri " end
-
-    for spa, val in pairs(effects) do
-        if spa == 15 or spa == 127 then desc = desc .. string.format("%sCast Time %d%%; ", prefix, val)
-        elseif spa == 108 or spa == 132 then desc = desc .. string.format("%sMana Pres %d%%; ", prefix, val)
-        elseif spa == 104 or spa == 124 then desc = desc .. string.format("%sSpell Dmg %d%%; ", prefix, val)
-        elseif spa == 105 or spa == 125 then desc = desc .. string.format("Healing %d%%; ", val)
-        elseif spa == 128 then desc = desc .. string.format("%sDuration %d%%; ", prefix, val)
-        elseif spa == 129 then desc = desc .. string.format("%sRange %d%%; ", prefix, val)
-        end
+    if desc == "" then
+        -- Diagnostics: If we found a focus but couldn't parse it, tell the user why
+        printf("\ar[GearLog]\ax Found focus '%s' (ID: %d) but SPAs were empty.", name, s.ID())
     end
     
     return clean(desc:len() > 0 and desc:sub(1, -3) or "")
@@ -68,7 +71,7 @@ end
 
 -- MODE: COLLECT
 local function startCollecting()
-    printf("\ag[GearLog]\ax Collecting data...")
+    printf("\ag[GearLog]\ax Starting collection loop...")
     local file = io.open(CSV_FILENAME, "w")
     if not file then return end
     file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusDesc\n")
@@ -106,7 +109,7 @@ local function sendData(targetDriver)
             local iName = clean(item.Name())
             local sName = clean(mq.TLO.InvSlot(i).Name() or "unknown")
             
-            -- Stats
+            -- Core Stats
             local ac = item.AC() or 0
             local hp = item.HP() or 0
             local mana = item.Mana() or 0
@@ -125,28 +128,33 @@ local function sendData(targetDriver)
             local hpregen = item.HPRegen() or 0
             local manaregen = item.ManaRegen() or 0
             
-            -- Focus Logic: USE RAW OBJECT FOR LOOKUP
+            -- Focus Logic
             local focusName = ""
             local focusDesc = ""
-            local sObj = nil
             
-            if item.Spell and item.Spell() and item.Spell.ID() > 0 then
-                sObj = item.Spell
-            elseif item.Focus and item.Focus() and item.Focus.ID() > 0 then
-                sObj = item.Focus
+            -- Try Spell first (Original macro match)
+            local s = tostring(item.Spell)
+            if s ~= "NULL" and s ~= "nil" then
+                focusName = clean(s)
+                focusDesc = parseFocus(s)
+            else
+                -- Fallback to Focus
+                local f = tostring(item.Focus)
+                if f ~= "NULL" and f ~= "nil" then
+                    focusName = clean(f)
+                    focusDesc = parseFocus(f)
+                end
             end
             
-            if sObj then
-                focusName = clean(sObj.Name())
-                focusDesc = parseFocus(sObj)
-                printf("\ay[GearLog]\ax %s -> %s", focusName, focusDesc)
+            if focusDesc ~= "" then
+                printf("\ag[GearLog]\ax %s: %s", focusName, focusDesc)
             end
             
             local dataLine = string.format("%s,%s,Item,%d-%s,,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s",
                 me, myClass, i, sName, iName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, focusName, focusDesc)
             
             mq.cmdf("/dex %s /gearlog_add %s", targetDriver, dataLine)
-            mq.delay(20)
+            mq.delay(25)
         end
     end
 end
