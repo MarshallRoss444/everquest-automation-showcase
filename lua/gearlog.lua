@@ -130,10 +130,18 @@ local function sendData(targetDriver)
                 local svp = item.svPoison() or item.PR() or 0
                 local hpregen = item.HPRegen() or 0
                 local manaregen = item.ManaRegen() or 0
-                
+                -- Focus Logic
                 local focusName = ""
-                local fRaw = item.Spell() or item.Focus() or ""
-                if tostring(fRaw) ~= "NULL" then focusName = tostring(fRaw) end
+                local s = item.Spell and item.Spell()
+                if s and tostring(s) ~= "NULL" then
+                    focusName = tostring(s)
+                else
+                    local f = item.Focus and item.Focus()
+                    if f and tostring(f) ~= "NULL" then
+                        focusName = tostring(f)
+                    end
+                end
+
                 local focusDesc = parseFocus(focusName)
                 
                 local dataLine = string.format("%s,%s,Item,%s,,\"%s\",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,\"%s\",\"%s\"",
