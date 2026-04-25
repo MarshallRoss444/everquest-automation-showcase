@@ -20,11 +20,13 @@ local function parseFocus(fName)
     local desc = ""
     local isBene = false
     local effects = {}
+    local slot1Attrib = 0
 
     for i=1, 12 do
         local attrib = 0
         pcall(function() attrib = s.Attrib(i)() or 0 end)
-        
+        if i == 1 then slot1Attrib = attrib end
+
         local val = 0
         pcall(function()
             -- ROF2 focus values can be in Base1 or Base2
@@ -63,6 +65,8 @@ local function parseFocus(fName)
         elseif attrib == 177 then desc = desc .. "Double Attack " .. val .. "%; "
         elseif attrib == 294 then desc = desc .. "Spell Crit Chance " .. val .. "%; "
         elseif attrib == 273 then desc = desc .. "Melee Crit Chance " .. val .. "%; "
+        elseif attrib == 296 then desc = desc .. "Inc Spell Dmg " .. val .. "%; "
+        elseif attrib == 297 then desc = desc .. "Inc Melee Dmg " .. val .. "%; "
         elseif attrib == 85 then 
             if val > 1000 then
                 local procSpell = mq.TLO.Spell(val)
@@ -80,21 +84,30 @@ local function parseFocus(fName)
         elseif attrib == 49 then desc = desc .. "Disease Resist " .. val .. "; "
         elseif attrib == 383 then desc = desc .. "Sympathetic Proc; "
         elseif attrib == 348 then desc = desc .. "Mana Proc (" .. val .. "); "
-        elseif attrib == 142 then desc = desc .. "Max HP " .. val .. "; "
+        elseif attrib == 142 and val > 10 then desc = desc .. "Max HP " .. val .. "; "
         elseif attrib == 10 then desc = desc .. "Proc/Direct Dmg (" .. val .. "); "
         elseif attrib == 11 then desc = desc .. "Hate " .. (val-100) .. "%; "
         end
     end
     
-    -- Fallback: If we have effects but no mapping, use the spell description
-    if desc == "" and next(effects) then
+    -- Fallback/Enhanced Desc: Use internal description if no primary stats found or for Clickies
+    if desc == "" or slot1Attrib == 296 or slot1Attrib == 297 then
         local sDesc = s.Description()
-        if sDesc and sDesc ~= "NULL" and sDesc ~= "" then
-            desc = sDesc:gsub("#1", effects[10] or effects[1] or "?"):gsub("@1", effects[10] or effects[1] or "?")
+        if sDesc and sDesc ~= "NULL" and sDesc ~= "" and not sDesc:find("Unknown DB String") then
+            -- Simple token replacement for description
+            for k,v in pairs(effects) do
+                sDesc = sDesc:gsub("#" .. k, v):gsub("@" .. k, v)
+            end
+            -- General cleanup for Slot 1 if it's common
+            local s1 = tostring(s.Base(1)() or "?")
+            sDesc = sDesc:gsub("#1", s1):gsub("@1", s1)
+            
+            if desc == "" then desc = sDesc else desc = desc .. " | " .. sDesc end
         end
     end
     
     if desc:len() > 0 then desc = desc:sub(1, -3) end
+    if desc:len() > 0 and desc:sub(-2) == " |" then desc = desc:sub(1, -3) end
     return desc:gsub(",", "")
 end
 
@@ -102,7 +115,7 @@ local function startCollecting()
     printf("\ag[GearLog]\ax Initializing Collection loop...")
     local file = io.open(CSV_FILENAME, "w")
     if not file then return end
-    file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusDesc,FocusType\n")
+    file:write("Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusType,FocusDesc\n")
     file:close()
     
     mq.bind('/gearlog_add', function(...)
@@ -206,7 +219,7 @@ local function sendData(targetDriver)
             local finalFocusType = table.concat(focusTypes, " | ")
             
             local dataLine = string.format("%s,%s,Item,%d-%s,,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s,%s",
-                me, myClass, i, sName, iName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, finalFocusName, finalFocusDesc, finalFocusType)
+                me, myClass, i, sName, iName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, finalFocusName, finalFocusType, finalFocusDesc)
             
             mq.cmdf("/dex %s /gearlog_add %s", targetDriver, dataLine)
             mq.delay(30)
