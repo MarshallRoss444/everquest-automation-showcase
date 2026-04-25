@@ -59,8 +59,9 @@ local function startCollecting()
     -- Also send our own data
     mq.cmdf("/lua run gearlog send %s", mq.TLO.Me.Name())
     
-    -- Keep the script alive for 15 seconds to catch all the DanNet messages
-    local endTime = os.time() + 15
+    -- Keep the script alive for 45 seconds to catch all the DanNet messages
+    -- A 54-man army sending ~50 items each takes longer than 15 seconds to fully process over the network
+    local endTime = os.time() + 45
     while os.time() < endTime do
         mq.delay(100)
     end
@@ -120,42 +121,6 @@ local function sendData(targetDriver)
             -- Send the line via DanNet
             mq.cmdf("/dex %s /gearlog_add %s", targetDriver, dataLine)
             mq.delay(10) -- Tiny delay to avoid network flooding
-            
-            -- Process Augs (Sockets 1 through 6)
-            for b = 1, 6 do
-                local aug = item.AugSlot(b)
-                if aug() ~= nil and aug.Item() ~= nil then
-                    local aName = aug.Item.Name() or ""
-                    local aAc = aug.Item.AC() or 0
-                    local aHp = aug.Item.HP() or 0
-                    local aMana = aug.Item.Mana() or 0
-                    
-                    local aStr = aug.Item.STR and aug.Item.STR() or 0
-                    local aSta = aug.Item.STA and aug.Item.STA() or 0
-                    local aInt = aug.Item.INT and aug.Item.INT() or 0
-                    local aWis = aug.Item.WIS and aug.Item.WIS() or 0
-                    local aAgi = aug.Item.AGI and aug.Item.AGI() or 0
-                    local aDex = aug.Item.DEX and aug.Item.DEX() or 0
-                    local aCha = aug.Item.CHA and aug.Item.CHA() or 0
-                    
-                    local aSvm = aug.Item.svMagic and aug.Item.svMagic() or aug.Item.MR and aug.Item.MR() or 0
-                    local aSvf = aug.Item.svFire and aug.Item.svFire() or aug.Item.FR and aug.Item.FR() or 0
-                    local aSvc = aug.Item.svCold and aug.Item.svCold() or aug.Item.CR and aug.Item.CR() or 0
-                    local aSvd = aug.Item.svDisease and aug.Item.svDisease() or aug.Item.DR and aug.Item.DR() or 0
-                    local aSvp = aug.Item.svPoison and aug.Item.svPoison() or aug.Item.PR and aug.Item.PR() or 0
-                    
-                    local aHpregen = aug.Item.HPRegen and aug.Item.HPRegen() or 0
-                    local aManaregen = aug.Item.ManaRegen and aug.Item.ManaRegen() or 0
-                    
-                    local aFocus = aug.Item.Focus() or ""
-                    
-                    local aDataLine = string.format("%s,%s,Aug,%s,%d,\"%s\",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,\"%s\"",
-                        me, myClass, slotName, b, aName, aAc, aHp, aMana, aStr, aSta, aInt, aWis, aAgi, aDex, aCha, aSvm, aSvf, aSvc, aSvd, aSvp, aHpregen, aManaregen, aFocus)
-                    
-                    mq.cmdf("/dex %s /gearlog_add %s", targetDriver, aDataLine)
-                    mq.delay(10)
-                end
-            end
         end
     end
 end
