@@ -9,7 +9,7 @@ local DRIVER_NAME = "ExampleTank"
 local CSV_FILENAME = mq.TLO.MacroQuest.Path("Logs")() .. "\\MyGearLog.csv"
 local INVENTORY_SLOTS = 21
 
--- Helper: Parse Focus Math (Fixed 1% and Negative values)
+-- Helper: Parse Focus Math (Fixed for ROF2: Uses Attrib and Base2)
 local function parseFocus(fName)
     local name = tostring(fName or "")
     if name == "" or name == "NULL" or name == "nil" then return "" end
@@ -22,32 +22,35 @@ local function parseFocus(fName)
     local effects = {}
 
     for i=1, 12 do
-        local spa = 0
-        pcall(function() spa = s.SPA(i)() or s.Attrib(i)() or 0 end)
+        local attrib = 0
+        pcall(function() attrib = s.Attrib(i)() or 0 end)
         
         local val = 0
         pcall(function()
-            local b = math.abs(s.Base(i)() or 0)
-            local m = math.abs(s.Max(i)() or 0)
-            val = math.max(b, m)
+            -- ROF2 focus values are typically in Base2
+            local b1 = math.abs(s.Base(i)() or 0)
+            local b2 = math.abs(s.Base2(i)() or 0)
+            val = math.max(b1, b2)
         end)
         
-        if spa == 138 and s.Base(i)() == 1 then isBene = true
-        elseif spa > 0 and val > 1 then
-            if not effects[spa] or val > effects[spa] then
-                effects[spa] = val
+        -- Attrib 138 is Limit: Spell Type (0=Detrimental, 1=Beneficial)
+        if attrib == 138 and s.Base(i)() == 1 then isBene = true
+        elseif attrib > 0 and val > 1 then
+            if not effects[attrib] or val > effects[attrib] then
+                effects[attrib] = val
             end
         end
     end
     
     local prefix = isBene and "Bene " or "Detri "
-    for spa, val in pairs(effects) do
-        if spa == 15 or spa == 127 then desc = desc .. string.format("%sCast Time %d%%; ", prefix, val)
-        elseif spa == 108 or spa == 132 then desc = desc .. string.format("%sMana Pres %d%%; ", prefix, val)
-        elseif spa == 104 or spa == 124 then desc = desc .. string.format("%sSpell Dmg %d%%; ", prefix, val)
-        elseif spa == 105 or spa == 125 then desc = desc .. "Healing " .. val .. "%; "
-        elseif spa == 128 then desc = desc .. string.format("%sDuration %d%%; ", prefix, val)
-        elseif spa == 129 then desc = desc .. string.format("%sRange %d%%; ", prefix, val)
+    for attrib, val in pairs(effects) do
+        -- Mapping based on ROF2 Attrib/SPA IDs
+        if attrib == 15 or attrib == 127 then desc = desc .. string.format("%sCast Time %d%%; ", prefix, val)
+        elseif attrib == 108 or attrib == 132 then desc = desc .. string.format("%sMana Pres %d%%; ", prefix, val)
+        elseif attrib == 104 or attrib == 124 then desc = desc .. string.format("%sSpell Dmg %d%%; ", prefix, val)
+        elseif attrib == 105 or attrib == 125 then desc = desc .. "Healing " .. val .. "%; "
+        elseif attrib == 128 then desc = desc .. string.format("%sDuration %d%%; ", prefix, val)
+        elseif attrib == 129 then desc = desc .. string.format("%sRange %d%%; ", prefix, val)
         end
     end
     
