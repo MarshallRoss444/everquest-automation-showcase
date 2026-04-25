@@ -159,7 +159,8 @@ local function sendData(targetDriver)
             local hpregen = item.HPRegen and item.HPRegen() or 0
             local manaregen = item.ManaRegen and item.ManaRegen() or 0
             
-            local focus = item.Focus() or ""
+            local focusRaw = item.Focus and item.Focus()
+            local focus = focusRaw and tostring(focusRaw) or ""
             local focusDesc = parseFocus(focus)
             
             -- Format: Name,Class,Type,Slot,AugSlot,ItemName,AC,HP,Mana,STR,STA,INT,WIS,AGI,DEX,CHA,SvM,SvF,SvC,SvD,SvP,HPRegen,ManaRegen,Focus,FocusDesc
