@@ -125,7 +125,8 @@ local function startCollecting()
     end)
     
     mq.cmdf("/dgae /lua run gearlog send %s", mq.TLO.Me.Name())
-    mq.cmdf("/lua run gearlog send %s", mq.TLO.Me.Name())
+    -- Local collection (ExampleTank)
+    sendData(mq.TLO.Me.Name())
     
     local endTime = os.time() + 45
     while os.time() < endTime do
