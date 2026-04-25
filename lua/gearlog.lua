@@ -27,7 +27,7 @@ local function parseFocus(fName)
         
         local val = 0
         pcall(function()
-            -- ROF2 focus values are typically in Base2
+            -- ROF2 focus values can be in Base1 or Base2
             local b1 = math.abs(s.Base(i)() or 0)
             local b2 = math.abs(s.Base2(i)() or 0)
             val = math.max(b1, b2)
@@ -35,7 +35,7 @@ local function parseFocus(fName)
         
         -- Attrib 138 is Limit: Spell Type (0=Detrimental, 1=Beneficial)
         if attrib == 138 and s.Base(i)() == 1 then isBene = true
-        elseif attrib > 0 and val > 1 then
+        elseif attrib > 0 and val >= 1 then
             if not effects[attrib] or val > effects[attrib] then
                 effects[attrib] = val
             end
@@ -51,6 +51,12 @@ local function parseFocus(fName)
         elseif attrib == 105 or attrib == 125 then desc = desc .. "Healing " .. val .. "%; "
         elseif attrib == 128 then desc = desc .. string.format("%sDuration %d%%; ", prefix, val)
         elseif attrib == 129 then desc = desc .. string.format("%sRange %d%%; ", prefix, val)
+        elseif attrib == 114 then desc = desc .. "Hate " .. val .. "%; "
+        elseif attrib == 178 then desc = desc .. "Melee Lifetap " .. val .. "%; "
+        elseif attrib == 174 then desc = desc .. "Dodge " .. val .. "%; "
+        elseif attrib == 175 then desc = desc .. "Parry " .. val .. "%; "
+        elseif attrib == 168 then desc = desc .. "Melee Crit " .. val .. "%; "
+        elseif attrib == 192 then desc = desc .. "Spell Crit " .. val .. "%; "
         end
     end
     
@@ -114,17 +120,35 @@ local function sendData(targetDriver)
             local svd = item.DR and item.DR() or item.SvDisease and item.SvDisease() or 0
             local svp = item.PR and item.PR() or item.SvPoison and item.SvPoison() or 0
             
-            -- Focus (Reverted to working string logic)
-            local focusName = tostring(item.Spell)
-            if focusName == "NULL" or focusName == "nil" then focusName = "" end
+            -- Focus Collection (Multiple slots)
+            local focusNames = {}
+            local focusDescs = {}
+            local seen = {}
             
-            local focusDesc = ""
-            if focusName ~= "" then
-                focusDesc = parseFocus(focusName)
+            -- Check for Skill Mods (e.g. Singing, Stringed, etc)
+            local skillMod = item.SkillModifier and tostring(item.SkillModifier()) or ""
+            local skillAmt = item.SkillModifierAmount and item.SkillModifierAmount() or 0
+            if skillMod ~= "" and skillMod ~= "NULL" and skillAmt > 0 then
+                table.insert(focusNames, skillMod .. " Mod")
+                table.insert(focusDescs, "+" .. skillAmt)
+            end
+
+            local possibleEffects = { "Focus", "Worn", "Spell" }
+            for _, effType in ipairs(possibleEffects) do
+                local val = tostring(item[effType])
+                if val ~= "NULL" and val ~= "nil" and val ~= "" and not seen[val] then
+                    table.insert(focusNames, val)
+                    local d = parseFocus(val)
+                    if d ~= "" then table.insert(focusDescs, d) end
+                    seen[val] = true
+                end
             end
             
+            local finalFocusName = table.concat(focusNames, " | ")
+            local finalFocusDesc = table.concat(focusDescs, " | ")
+            
             local dataLine = string.format("%s,%s,Item,%d-%s,,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s",
-                me, myClass, i, sName, iName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, focusName, focusDesc)
+                me, myClass, i, sName, iName, ac, hp, mana, str, sta, int, wis, agi, dex, cha, svm, svf, svc, svd, svp, hpregen, manaregen, finalFocusName, finalFocusDesc)
             
             mq.cmdf("/dex %s /gearlog_add %s", targetDriver, dataLine)
             mq.delay(30)
