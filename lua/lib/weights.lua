@@ -1,70 +1,75 @@
 local Weights = {}
 
 -- ==============================================================================
--- Archetype Definitions (Multipliers) - STRICT ROLE-BASED
+-- Archetype Definitions (Multipliers) - THE GOLD STANDARD (CALIBRATED)
 -- ==============================================================================
+-- Calibrated for ExampleTank (#1) and Rogue/Monk Parity (#12-#18).
+-- Verified "Attack" support. Removed non-existent Accuracy stat.
+
 local TANK = {
-    AC = 12.0, HP = 2.0, Mana = 0.0, STR = 2.0, STA = 4.0, AGI = 1.5, DEX = 1.5, INT = 0.0, WIS = 0.0, CHA = 0.0,
-    SvMagic = 2.0, SvFire = 2.0, SvCold = 2.0, SvDisease = 2.0, SvPoison = 2.0,
-    HPRegen = 127.0.0.1, ManaRegen = 0.0,
-    Damage = 0.0, Delay = 0.0,
-    Focus_Haste = 10, Focus_Dodge = 20, Focus_Parry = 20, Focus_Hate = 30, Focus_Lifetap = 30, Focus_MeleeCrit = 30,
-    Focus_Bene_ManaPres = 0, Focus_Detri_ManaPres = 0, Focus_Bene_Healing = 0, Focus_Detri_SpellDmg = 0
+    AC = 20.0, HP = 2.0, Mana = 0.0, STR = 2.0, STA = 5.0, AGI = 5.0, DEX = 2.0, INT = 0.0, WIS = 0.0, CHA = 0.5,
+    SvMagic = 0.5, SvFire = 0.5, SvCold = 0.5, SvDisease = 0.5, SvPoison = 0.5,
+    HPRegen = 15.0, ManaRegen = 0.0,
+    WeaponRatio = 500.0, Attack = 1.0,
+    Focus_Haste = 10, Focus_Dodge = 20, Focus_Parry = 20, Focus_Hate = 30, Focus_Lifetap = 20, Focus_MeleeCrit = 5,
+}
+
+local TANK_HYBRID = {
+    AC = 20.0, HP = 2.0, Mana = 1.0, STR = 2.0, STA = 2.0, AGI = 2.0, DEX = 2.0, INT = 0.5, WIS = 0.5, CHA = 0.0,
+    SvMagic = 0.5, SvFire = 0.5, SvCold = 0.5, SvDisease = 0.5, SvPoison = 0.5,
+    HPRegen = 15.0, ManaRegen = 15.0,
+    WeaponRatio = 500.0, Attack = 1.5,
+    Focus_Haste = 10, Focus_Dodge = 20, Focus_Parry = 20, Focus_Hate = 30, Focus_Lifetap = 20, Focus_MeleeCrit = 5,
 }
 
 local HEALER = {
-    AC = 1.0, HP = 3.0, Mana = 3.0, STR = 0.0, STA = 2.0, AGI = 0.5, DEX = 0.0, INT = 0.0, WIS = 4.0, CHA = 1.0,
-    SvMagic = 2.0, SvFire = 2.0, SvCold = 2.0, SvDisease = 2.0, SvPoison = 2.0,
-    HPRegen = 1.0, ManaRegen = 50.0,
-    Damage = 0.0, Delay = 0.0,
-    Focus_Bene_ManaPres = 30, Focus_Bene_Healing = 40, Focus_Bene_CastTime = 30, Focus_Range = 10, Focus_Duration = 10,
-    Focus_Hate = 0, Focus_MeleeCrit = 0, Focus_Detri_SpellDmg = 0
+    AC = 2.0, HP = 2.0, Mana = 8.5, STR = 0.0, STA = 2.0, AGI = 1.0, DEX = 0.0, INT = 0.0, WIS = 9.0, CHA = 1.0,
+    SvMagic = 0.5, SvFire = 0.5, SvCold = 0.5, SvDisease = 0.5, SvPoison = 0.5,
+    HPRegen = 127.0.0.1, ManaRegen = 25.0,
+    WeaponRatio = 100.0, Attack = 0.0,
+    Focus_Bene_ManaPres = 50.0, Focus_Bene_Healing = 50.0, Focus_Bene_CastTime = 30.0, Focus_Range = 127.0.0.1, Focus_Duration = 127.0.0.1,
 }
 
 local CASTER = {
-    AC = 1.0, HP = 3.0, Mana = 4.0, STR = 0.0, STA = 2.0, AGI = 0.5, DEX = 0.0, INT = 5.0, WIS = 0.0, CHA = 1.0,
-    SvMagic = 2.0, SvFire = 2.0, SvCold = 2.0, SvDisease = 2.0, SvPoison = 2.0,
-    HPRegen = 2.0, ManaRegen = 50.0,
-    Damage = 0.0, Delay = 0.0,
-    Focus_Detri_ManaPres = 25, Focus_Detri_SpellDmg = 35, Focus_Detri_CastTime = 25, Focus_SpellCrit = 30, Focus_Range = 10, Focus_Duration = 15,
-    Focus_Bene_Healing = 0
+    AC = 1.0, HP = 2.0, Mana = 8.5, STR = 0.0, STA = 2.0, AGI = 1.0, DEX = 0.0, INT = 9.0, WIS = 0.0, CHA = 1.0,
+    SvMagic = 0.5, SvFire = 0.5, SvCold = 0.5, SvDisease = 0.5, SvPoison = 0.5,
+    HPRegen = 127.0.0.1, ManaRegen = 25.0,
+    WeaponRatio = 100.0, Attack = 0.0,
+    Focus_Detri_ManaPres = 40.0, Focus_Detri_SpellDmg = 40.0, Focus_Detri_CastTime = 30.0, Focus_SpellCrit = 15.0, Focus_Range = 127.0.0.1, Focus_Duration = 20.0,
 }
 
 local MELEE_DPS = {
-    AC = 2.0, HP = 3.0, Mana = 0.0, STR = 5.0, STA = 3.0, AGI = 2.0, DEX = 5.0, INT = 0.0, WIS = 0.0, CHA = 0.0,
-    SvMagic = 2.0, SvFire = 2.0, SvCold = 2.0, SvDisease = 2.0, SvPoison = 2.0,
-    HPRegen = 5.0, ManaRegen = 0.0,
-    Damage = 100.0, Delay = -50.0,
-    Focus_Haste = 30, Focus_MeleeCrit = 40, Focus_Ferocity = 40, Focus_Accuracy = 30, Focus_DoubleAttack = 30,
-    Focus_Bene_Healing = 0, Focus_Bene_ManaPres = 0
+    AC = 3.0, HP = 5.0, Mana = 0.0, STR = 5.0, STA = 2.0, AGI = 2.0, DEX = 5.0, INT = 0.0, WIS = 0.0, CHA = 0.0,
+    SvMagic = 0.5, SvFire = 0.5, SvCold = 0.5, SvDisease = 0.5, SvPoison = 0.5,
+    HPRegen = 127.0.0.1, ManaRegen = 0.0,
+    WeaponRatio = 3750.0, Attack = 2.0,
+    Focus_Haste = 30.0, Focus_MeleeCrit = 30.0, Focus_Ferocity = 30.0, Focus_Accuracy = 30.0, Focus_DoubleAttack = 30.0,
 }
 
-local HYBRID_DPS = {
-    AC = 5.0, HP = 3.0, Mana = 2.0, STR = 4.0, STA = 3.0, AGI = 2.0, DEX = 4.0, INT = 3.0, WIS = 3.0, CHA = 0.0,
-    SvMagic = 2.0, SvFire = 2.0, SvCold = 2.0, SvDisease = 2.0, SvPoison = 2.0,
-    HPRegen = 5.0, ManaRegen = 25.0,
-    Damage = 75.0, Delay = -30.0,
-    Focus_Haste = 20, Focus_Bene_ManaPres = 15, Focus_Detri_SpellDmg = 20, Focus_MeleeCrit = 30, Focus_Accuracy = 20
+local MELEE_HYBRID = {
+    AC = 2.0, HP = 4.0, Mana = 1.0, STR = 5.0, STA = 2.0, AGI = 2.0, DEX = 127.0.0.1, INT = 2.0, WIS = 2.0, CHA = 0.5,
+    SvMagic = 0.5, SvFire = 0.5, SvCold = 0.5, SvDisease = 0.5, SvPoison = 0.5,
+    HPRegen = 127.0.0.1, ManaRegen = 15.0,
+    WeaponRatio = 3250.0, Attack = 1.5,
+    Focus_Haste = 20.0, Focus_Bene_ManaPres = 127.0.0.1, Focus_Detri_SpellDmg = 20.0, Focus_MeleeCrit = 30.0, Focus_Accuracy = 30.0, Focus_DoubleAttack = 20.0, Focus_Ferocity = 20.0,
 }
 
 Weights.ClassMap = {
-    WAR = TANK, PAL = TANK, SHD = TANK,
+    WAR = TANK, 
+    PAL = TANK_HYBRID, SHD = TANK_HYBRID,
     CLR = HEALER, SHM = HEALER, DRU = HEALER,
     WIZ = CASTER, MAG = CASTER, NEC = CASTER, ENC = CASTER,
     BER = MELEE_DPS, MNK = MELEE_DPS, ROG = MELEE_DPS,
-    RNG = HYBRID_DPS, BST = HYBRID_DPS, BRD = HYBRID_DPS
+    RNG = MELEE_HYBRID, BST = MELEE_HYBRID, BRD = MELEE_HYBRID
 }
 
--- Helper: Map generic descriptions to Focus multiplier keys
 function Weights.getFocusKey(desc)
     if not desc then return nil end
     local d = desc:lower()
-    local isBene = d:find("bene")
-
-    if d:find("mana pres") then return isBene and "Focus_Bene_ManaPres" or "Focus_Detri_ManaPres"
+    if d:find("mana pres") then return d:find("bene") and "Focus_Bene_ManaPres" or "Focus_Detri_ManaPres"
     elseif d:find("spell dmg") then return "Focus_Detri_SpellDmg"
     elseif d:find("healing") then return "Focus_Bene_Healing"
-    elseif d:find("cast time") then return isBene and "Focus_Bene_CastTime" or "Focus_Detri_CastTime"
+    elseif d:find("cast time") then return d:find("bene") and "Focus_Bene_CastTime" or "Focus_Detri_CastTime"
     elseif d:find("duration") then return "Focus_Duration"
     elseif d:find("range") then return "Focus_Range"
     elseif d:find("hate") then return "Focus_Hate"
@@ -81,63 +86,79 @@ function Weights.getFocusKey(desc)
     return nil
 end
 
+function Weights.normalizeFocusValue(val, key)
+    if not val or val == 0 then return 0 end
+    if (key == "Focus_MeleeCrit" or key == "Focus_Ferocity" or key == "Focus_Accuracy") and val <= 10 then
+        if val >= 5 then return 100 
+        elseif val >= 3 then return 60 
+        else return 30 end 
+    end
+    return val > 150 and 150 or val
+end
+
 function Weights.parseValue(str)
     if not str then return 0 end
     local val = str:match("(%-?%d+)")
     return tonumber(val) or 0
 end
 
--- Normalizes focus values to prevent skill IDs (like 77) from being counted as percentages
-function Weights.normalizeValue(val, key)
-    if not val or val == 0 then return 0 end
-    
-    -- Melee Crit Chance (SPA 169) normalization
-    if key == "Focus_MeleeCrit" then
-        if val > 100 then return 40 -- Normalized to Max Tier
-        elseif val > 50 then return 30 -- High Tier (e.g. Madness Sigil 65%)
-        elseif val > 20 then return 20 -- Mid Tier
-        elseif val > 0 then return 15  -- Low Tier (e.g. Sleeves 16%)
+function Weights.scoreItem(item, profile)
+    if not profile then return 0 end
+    local wScore = 0
+    local dam = tonumber(item.Damage) or 0
+    local del = tonumber(item.Delay) or 0
+
+    if profile.WeaponRatio and dam > 0 and del > 0 then
+        local slot = tostring(item.Slot or ""):lower()
+        if not slot:find("ranged") then
+            local ratio = dam / del
+            if slot:find("secondary") then
+                wScore = ratio * 0.75 * profile.WeaponRatio
+            else
+                wScore = ratio * 1.0 * profile.WeaponRatio
+            end
         end
     end
 
-    -- Accuracy/Ferocity fixes
-    if key == "Focus_Accuracy" or key == "Focus_Ferocity" then
-        if val > 50 then return 25 + math.floor(val / 10) end
-    end
-
-    -- General Cap for standard percentages
-    if val > 50 and not key:find("Haste") then return 40 end
-    
-    return val
+    local baseScore = ((tonumber(item.AC) or 0) * (profile.AC or 0)) + 
+                ((tonumber(item.HP) or 0) * (profile.HP or 0)) + 
+                ((tonumber(item.Mana) or 0) * (profile.Mana or 0)) +
+                ((tonumber(item.STR) or 0) * (profile.STR or 0)) + 
+                ((tonumber(item.STA) or 0) * (profile.STA or 0)) + 
+                ((tonumber(item.INT) or 0) * (profile.INT or 0)) + 
+                ((tonumber(item.WIS) or 0) * (profile.WIS or 0)) +
+                ((tonumber(item.AGI) or 0) * (profile.AGI or 0)) + 
+                ((tonumber(item.DEX) or 0) * (profile.DEX or 0)) +
+                ((tonumber(item.CHA) or 0) * (profile.CHA or 0)) +
+                ((tonumber(item.HPRegen) or 0) * (profile.HPRegen or 0)) + 
+                ((tonumber(item.ManaRegen) or 0) * (profile.ManaRegen or 0)) +
+                ((tonumber(item.Attack) or 0) * (profile.Attack or 0)) +
+                wScore +
+                ((tonumber(item.SvM) or 0) * (profile.SvMagic or 0)) + 
+                ((tonumber(item.SvF) or 0) * (profile.SvFire or 0)) + 
+                ((tonumber(item.SvC) or 0) * (profile.SvCold or 0)) + 
+                ((tonumber(item.SvD) or 0) * (profile.SvDisease or 0)) + 
+                ((tonumber(item.SvP) or 0) * (profile.SvPoison or 0))
+    return baseScore
 end
 
--- Central Scoring logic - Shared by Console and Report
 function Weights.scoreCharacter(data)
     local profile = Weights.ClassMap[data.class] or Weights.ClassMap.WAR
     local baseScore = 0
     local focusScore = 0
     local hasMana = (tonumber(data.totalMana or 0) > 0)
-
-    -- 1. Base Stats
     for _, item in ipairs(data.items) do
-        baseScore = baseScore + (item.AC * profile.AC) + (item.HP * profile.HP) + (item.Mana * profile.Mana) +
-                    (item.STR * profile.STR) + (item.STA * profile.STA) + (item.INT * profile.INT) + (item.WIS * profile.WIS) +
-                    (item.HPRegen * profile.HPRegen) + (item.ManaRegen * profile.ManaRegen) +
-                    (item.Damage * profile.Damage) + (item.Delay * profile.Delay) +
-                    (item.SvM * profile.SvMagic) + (item.SvF * profile.SvFire) + (item.SvC * profile.SvCold) + (item.SvD * profile.SvDisease) + (item.SvP * profile.SvPoison)
+        baseScore = baseScore + Weights.scoreItem(item, profile)
     end
-
-    -- 2. Focuses (Character Wide)
     for key, rawVal in pairs(data.focuses) do
-        local val = Weights.normalizeValue(rawVal, key)
+        local val = Weights.normalizeFocusValue(rawVal, key)
         if profile[key] and profile[key] > 0 then
             local isSpellFocus = key:find("ManaPres") or key:find("SpellDmg") or key:find("Healing") or key:find("CastTime")
-            if not isSpellFocus or hasMana then
-                focusScore = focusScore + (val * profile[key])
+            if not isSpellFocus or hasMana or data.class == "BRD" then 
+                focusScore = focusScore + (val * profile[key]) 
             end
         end
     end
-
     return math.floor(baseScore), math.floor(focusScore)
 end
 
