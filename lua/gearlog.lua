@@ -48,6 +48,7 @@ local function parseFocus(fName)
         elseif attrib == 168 or attrib == 169 or attrib == 273 then desc = desc .. "MeleeCrit " .. val .. "% - "
         elseif attrib == 192 or attrib == 294 then desc = desc .. "SpellCrit " .. val .. "% - "
         elseif attrib == 100 then desc = desc .. "Ferocity " .. val .. " - "
+        elseif attrib == 129 then desc = desc .. "Range " .. val .. "% - "
         elseif attrib == 4 or attrib == 216 or attrib == 184 then desc = desc .. "Accuracy " .. val .. " - "
         elseif attrib == 177 then desc = desc .. "DoubleAttack " .. val .. "% - "
         end
