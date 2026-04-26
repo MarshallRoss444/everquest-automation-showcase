@@ -130,7 +130,7 @@ local function collect()
         f:close()
     end
     mq.bind('/gearlog_add', function(...) writeLine(table.concat({...}, " ")) end)
-    mq.cmdf("/dgae /lua run gearlog send %s", mq.TLO.Me.Name())
+    mq.cmdf("/dga /lua run gearlog send %s", mq.TLO.Me.Name())
     sendData("local")
     mq.delay(30000)
     mq.unbind('/gearlog_add')
@@ -138,4 +138,10 @@ local function collect()
 end
 
 local args = {...}
-if args[1] == "send" then sendData(args[2]) else collect() end
+local mode = args[1] or "collect"
+
+if mode == "collect" then
+    collect()
+elseif mode == "send" then
+    sendData(args[2] or "ExampleTank")
+end
