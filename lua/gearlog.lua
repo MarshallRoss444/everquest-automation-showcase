@@ -1,10 +1,10 @@
 local mq = require('mq')
 
 -- ==============================================================================
--- GearLog.lua - Version 17.4 (VERIFIED STAT RESTORATION)
+-- GearLog.lua - Version 17.5 (HISTORICAL FOCUS RESTORATION)
 -- ==============================================================================
--- Collects AC, HP, Mana, Primary Stats, and Verified Attack.
--- Removed non-existent Accuracy stat.
+-- Restored deduplication and FocusType tracking from v15.2.
+-- Maintained verified "Attack" property and crash-proof extraction.
 
 local CSV_FILENAME = mq.TLO.MacroQuest.Path("Logs")() .. "\\MyGearLog.csv"
 
@@ -87,8 +87,6 @@ local function sendData(targetDriver)
             local mnr = (item.ManaRegen and item.ManaRegen()) or 0
             local dam = (item.Damage and item.Damage()) or 0
             local del = (item.ItemDelay and item.ItemDelay()) or (item.Delay and item.Delay()) or 0
-            
-            -- VERIFIED PROPERTY: Attack
             local atk = (item.Attack and item.Attack()) or 0
             
             local svm = (item.MR and item.MR()) or (item.SvMagic and item.SvMagic()) or 0
@@ -97,21 +95,24 @@ local function sendData(targetDriver)
             local svd = (item.DR and item.DR()) or (item.SvDisease and item.SvDisease()) or 0
             local svp = (item.PR and item.PR()) or (item.SvPoison and item.SvPoison()) or 0
             
-            local focusNames, focusDescs = {}, {}
+            -- FOCUS GATHERING: Historical v15.2 Logic
+            local focusNames, focusTypes, focusDescs = {}, {}, {}
+            local seen = {}
             local possible = { "Focus", "Worn", "Spell", "Clicky" }
             for _, t in ipairs(possible) do
                 local v = tostring(item[t])
-                if v ~= "NULL" and v ~= "nil" and v ~= "" then
+                if v ~= "NULL" and v ~= "nil" and v ~= "" and not seen[v] then
                     table.insert(focusNames, v)
+                    table.insert(focusTypes, t)
                     table.insert(focusDescs, (parseFocus(v)))
+                    seen[v] = true
                 end
             end
             
-            -- Structure: 1-5 Chars, 6 Name, 7-16 Base, 17-21 Sv, 22-23 Regen, 24 Dam, 25 Del, 26 Atk, 27-29 Focus
             local data = string.format("%s|%s|Item|%d-%s||%s|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%s|%s|%s",
                 me, myClass, i, sName, iName, ac, hp, mana, str, sta, int, wis, agi, dex, cha,
                 svm, svf, svc, svd, svp, hpr, mnr, dam, del, atk,
-                table.concat(focusNames, " - "), "", table.concat(focusDescs, " - "))
+                table.concat(focusNames, " - "), table.concat(focusTypes, " - "), table.concat(focusDescs, " - "))
             
             if targetDriver == "local" then writeLine(data)
             else mq.cmdf("/dex %s /gearlog_add %s", targetDriver, data) end
