@@ -2,9 +2,9 @@ local mq = require('mq')
 local weights = require('lib.weights')
 
 -- ==============================================================================
--- Score.lua - Version 21.2 (VERIFIED STAT RESTORATION)
+-- Score.lua - Version 21.4 (STRICT PASSIVE FILTER)
 -- ==============================================================================
--- Updated to include the verified Attack stat. Removed non-existent Accuracy.
+-- Strictly excludes FocusType=Spell. Only 'Focus' and 'Worn' count.
 
 local CSV_FILENAME = mq.TLO.MacroQuest.Path("Logs")() .. "\\MyGearLog.csv"
 
@@ -20,10 +20,18 @@ local function parseCSVLine(line)
     return columns
 end
 
+local function split(str, pat)
+    local t = {}
+    for part in str:gmatch("([^" .. pat .. "]+)") do
+        table.insert(t, part:match("^%s*(.-)%s*$"))
+    end
+    return t
+end
+
 local function main()
     local f = io.open(CSV_FILENAME, "r")
     if not f then printf("\ar[Score] Error: MyGearLog.csv not found!\ax"); return end
-    f:read("*l") -- skip header
+    f:read("*l") 
     
     local characters = {}
     for line in f:lines() do
@@ -42,6 +50,7 @@ local function main()
                 HPRegen = tonumber(cols[22]) or 0, ManaRegen = tonumber(cols[23]) or 0,
                 Damage = tonumber(cols[24]) or 0, Delay = tonumber(cols[25]) or 0,
                 Attack = tonumber(cols[26]) or 0,
+                FocusType = cols[28] or "",
                 FocusDesc = cols[29] or ""
             }
             
@@ -49,13 +58,21 @@ local function main()
             table.insert(characters[name].items, item)
 
             if item.FocusDesc ~= "" then
-                for part in item.FocusDesc:gmatch("([^|;%-]+)") do
-                    local key = weights.getFocusKey(part)
-                    local val = weights.parseValue(part)
-                    if key then
-                        local nv = weights.normalizeFocusValue(val, key)
-                        if nv > (characters[name].focuses[key] or 0) then 
-                            characters[name].focuses[key] = nv 
+                local fTypes = split(item.FocusType, "|%-")
+                local fDescs = split(item.FocusDesc, "|%-")
+
+                for i, desc in ipairs(fDescs) do
+                    local fType = fTypes[i] or "Focus"
+                    
+                    -- THE USER MANDATE: Strictly ignore 'Spell' types.
+                    if fType ~= "Spell" and (fType == "Focus" or fType == "Worn") then
+                        local key = weights.getFocusKey(desc)
+                        local val = weights.parseValue(desc)
+                        if key then
+                            local nv = weights.normalizeFocusValue(val, key)
+                            if nv > (characters[name].focuses[key] or 0) then 
+                                characters[name].focuses[key] = nv 
+                            end
                         end
                     end
                 end

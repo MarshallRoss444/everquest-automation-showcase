@@ -1,10 +1,10 @@
 local mq = require('mq')
 
 -- ==============================================================================
--- GearLog.lua - Version 17.5 (HISTORICAL FOCUS RESTORATION)
+-- GearLog.lua - Version 18.1 (AUGMENT-AWARE RESTORATION)
 -- ==============================================================================
--- Restored deduplication and FocusType tracking from v15.2.
--- Maintained verified "Attack" property and crash-proof extraction.
+-- Collects Full Augmented Stats (Base + Crystals).
+-- Uses .Item pointer to safely extract hidden focuses from socketed augments.
 
 local CSV_FILENAME = mq.TLO.MacroQuest.Path("Logs")() .. "\\MyGearLog.csv"
 
@@ -26,7 +26,12 @@ local function parseFocus(fName)
         pcall(function()
             local b1 = math.abs(s.Base(i)() or 0)
             local b2 = math.abs(s.Base2(i)() or 0)
-            val = math.max(b1, b2)
+            -- For Melee Crit, Accuracy, and Double Attack, Base1 is the percentage. Base2 is often Level Limit.
+            if attrib == 168 or attrib == 169 or attrib == 273 or attrib == 100 or attrib == 177 or attrib == 4 then
+                val = b1
+            else
+                val = math.max(b1, b2)
+            end
         end)
         if attrib > 0 and val >= 1 then
             if not effects[attrib] or val > effects[attrib] then effects[attrib] = val end
@@ -95,7 +100,6 @@ local function sendData(targetDriver)
             local svd = (item.DR and item.DR()) or (item.SvDisease and item.SvDisease()) or 0
             local svp = (item.PR and item.PR()) or (item.SvPoison and item.SvPoison()) or 0
             
-            -- FOCUS GATHERING: Historical v15.2 Logic
             local focusNames, focusTypes, focusDescs = {}, {}, {}
             local seen = {}
             local possible = { "Focus", "Worn", "Spell", "Clicky" }
@@ -106,6 +110,34 @@ local function sendData(targetDriver)
                     table.insert(focusTypes, t)
                     table.insert(focusDescs, (parseFocus(v)))
                     seen[v] = true
+                end
+            end
+
+            -- AUGMENT SCAN (v18.1): Add crystal stats and focuses
+            for a = 1, 6 do
+                local aug = item.AugSlot(a)
+                if aug and aug() then
+                    local aItem = aug.Item
+                    if aItem and aItem() then
+                        ac = ac + ((aItem.AC and aItem.AC()) or 0)
+                        hp = hp + ((aItem.HP and aItem.HP()) or 0)
+                        mana = mana + ((aItem.Mana and aItem.Mana()) or 0)
+                        str = str + ((aItem.STR and aItem.STR()) or 0)
+                        sta = sta + ((aItem.STA and aItem.STA()) or 0)
+                        int = int + ((aItem.INT and aItem.INT()) or 0)
+                        wis = wis + ((aItem.WIS and aItem.WIS()) or 0)
+                        agi = agi + ((aItem.AGI and aItem.AGI()) or 0)
+                        dex = dex + ((aItem.DEX and aItem.DEX()) or 0)
+                        cha = cha + ((aItem.CHA and aItem.CHA()) or 0)
+                        
+                        local f = tostring((aItem.Focus and aItem.Focus()) or "")
+                        if f ~= "" and f ~= "NULL" and f ~= "nil" and not seen[f] then
+                            table.insert(focusNames, f)
+                            table.insert(focusTypes, "Augment")
+                            table.insert(focusDescs, (parseFocus(f)))
+                            seen[f] = true
+                        end
+                    end
                 end
             end
             
@@ -130,7 +162,7 @@ local function collect()
         f:close()
     end
     mq.bind('/gearlog_add', function(...) writeLine(table.concat({...}, " ")) end)
-    mq.cmdf("/dga /lua run gearlog send %s", mq.TLO.Me.Name())
+    mq.cmdf("/dgex /lua run gearlog send %s", mq.TLO.Me.Name())
     sendData("local")
     mq.delay(30000)
     mq.unbind('/gearlog_add')

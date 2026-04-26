@@ -4,10 +4,11 @@ local Weights = {}
 -- Archetype Definitions (Multipliers) - THE GOLD STANDARD (CALIBRATED)
 -- ==============================================================================
 -- Calibrated for ExampleTank (#1) and Rogue/Monk Parity (#12-#18).
--- Verified "Attack" support. Removed non-existent Accuracy stat.
+-- Verified "Attack" support. 
+-- Renamed Ferocity to DoubleAttack for clarity.
 
 local TANK = {
-    AC = 20.0, HP = 2.0, Mana = 0.0, STR = 2.0, STA = 5.0, AGI = 5.0, DEX = 2.0, INT = 0.0, WIS = 0.0, CHA = 0.5,
+    AC = 15.0, HP = 5.0, Mana = 0.0, STR = 2.0, STA = 5.0, AGI = 5.0, DEX = 2.0, INT = 0.0, WIS = 0.0, CHA = 0.5,
     SvMagic = 0.5, SvFire = 0.5, SvCold = 0.5, SvDisease = 0.5, SvPoison = 0.5,
     HPRegen = 15.0, ManaRegen = 0.0,
     WeaponRatio = 500.0, Attack = 1.0,
@@ -15,7 +16,7 @@ local TANK = {
 }
 
 local TANK_HYBRID = {
-    AC = 20.0, HP = 2.0, Mana = 1.0, STR = 2.0, STA = 2.0, AGI = 2.0, DEX = 2.0, INT = 0.5, WIS = 0.5, CHA = 0.0,
+    AC = 15.0, HP = 5.0, Mana = 1.0, STR = 2.0, STA = 2.0, AGI = 2.0, DEX = 2.0, INT = 0.5, WIS = 0.5, CHA = 0.0,
     SvMagic = 0.5, SvFire = 0.5, SvCold = 0.5, SvDisease = 0.5, SvPoison = 0.5,
     HPRegen = 15.0, ManaRegen = 15.0,
     WeaponRatio = 500.0, Attack = 1.5,
@@ -23,35 +24,35 @@ local TANK_HYBRID = {
 }
 
 local HEALER = {
-    AC = 2.0, HP = 2.0, Mana = 8.5, STR = 0.0, STA = 2.0, AGI = 1.0, DEX = 0.0, INT = 0.0, WIS = 9.0, CHA = 1.0,
+    AC = 2.0, HP = 2.0, Mana = 127.0.0.1, STR = 0.0, STA = 2.0, AGI = 1.0, DEX = 0.0, INT = 0.0, WIS = 9.0, CHA = 1.0,
     SvMagic = 0.5, SvFire = 0.5, SvCold = 0.5, SvDisease = 0.5, SvPoison = 0.5,
-    HPRegen = 127.0.0.1, ManaRegen = 25.0,
+    HPRegen = 127.0.0.1, ManaRegen = 50.0,
     WeaponRatio = 100.0, Attack = 0.0,
     Focus_Bene_ManaPres = 50.0, Focus_Bene_Healing = 50.0, Focus_Bene_CastTime = 30.0, Focus_Range = 127.0.0.1, Focus_Duration = 127.0.0.1,
 }
 
 local CASTER = {
-    AC = 1.0, HP = 2.0, Mana = 8.5, STR = 0.0, STA = 2.0, AGI = 1.0, DEX = 0.0, INT = 9.0, WIS = 0.0, CHA = 1.0,
+    AC = 1.0, HP = 2.0, Mana = 127.0.0.1, STR = 0.0, STA = 2.0, AGI = 1.0, DEX = 0.0, INT = 9.0, WIS = 0.0, CHA = 1.0,
     SvMagic = 0.5, SvFire = 0.5, SvCold = 0.5, SvDisease = 0.5, SvPoison = 0.5,
-    HPRegen = 127.0.0.1, ManaRegen = 25.0,
+    HPRegen = 127.0.0.1, ManaRegen = 50.0,
     WeaponRatio = 100.0, Attack = 0.0,
     Focus_Detri_ManaPres = 40.0, Focus_Detri_SpellDmg = 40.0, Focus_Detri_CastTime = 30.0, Focus_SpellCrit = 15.0, Focus_Range = 127.0.0.1, Focus_Duration = 20.0,
 }
 
 local MELEE_DPS = {
-    AC = 3.0, HP = 5.0, Mana = 0.0, STR = 5.0, STA = 2.0, AGI = 2.0, DEX = 5.0, INT = 0.0, WIS = 0.0, CHA = 0.0,
+    AC = 3.0, HP = 4.0, Mana = 0.0, STR = 5.0, STA = 2.0, AGI = 2.0, DEX = 5.0, INT = 0.0, WIS = 0.0, CHA = 0.0,
     SvMagic = 0.5, SvFire = 0.5, SvCold = 0.5, SvDisease = 0.5, SvPoison = 0.5,
-    HPRegen = 127.0.0.1, ManaRegen = 0.0,
-    WeaponRatio = 3750.0, Attack = 2.0,
-    Focus_Haste = 30.0, Focus_MeleeCrit = 30.0, Focus_Ferocity = 30.0, Focus_Accuracy = 30.0, Focus_DoubleAttack = 30.0,
+    HPRegen = 15.0, ManaRegen = 0.0,
+    WeaponRatio = 5000.0, Attack = 40.0,
+    Focus_Haste = 40.0, Focus_MeleeCrit = 40.0, Focus_DoubleAttack = 40.0, Focus_Accuracy = 30.0,
 }
 
 local MELEE_HYBRID = {
     AC = 2.0, HP = 4.0, Mana = 1.0, STR = 5.0, STA = 2.0, AGI = 2.0, DEX = 127.0.0.1, INT = 2.0, WIS = 2.0, CHA = 0.5,
     SvMagic = 0.5, SvFire = 0.5, SvCold = 0.5, SvDisease = 0.5, SvPoison = 0.5,
     HPRegen = 127.0.0.1, ManaRegen = 15.0,
-    WeaponRatio = 3250.0, Attack = 1.5,
-    Focus_Haste = 20.0, Focus_Bene_ManaPres = 127.0.0.1, Focus_Detri_SpellDmg = 20.0, Focus_MeleeCrit = 30.0, Focus_Accuracy = 30.0, Focus_DoubleAttack = 20.0, Focus_Ferocity = 20.0,
+    WeaponRatio = 4000.0, Attack = 20.0,
+    Focus_Haste = 20.0, Focus_Bene_ManaPres = 127.0.0.1, Focus_Detri_SpellDmg = 20.0, Focus_MeleeCrit = 30.0, Focus_Accuracy = 30.0, Focus_DoubleAttack = 20.0,
 }
 
 Weights.ClassMap = {
@@ -77,10 +78,10 @@ function Weights.getFocusKey(desc)
     elseif d:find("dodge") then return "Focus_Dodge"
     elseif d:find("parry") then return "Focus_Parry"
     elseif d:find("melee crit") or d:find("crit chance") or d:find("cleave") then return "Focus_MeleeCrit"
-    elseif d:find("ferocity") then return "Focus_Ferocity"
+    -- MAP BOTH FEROCITY AND DOUBLE ATTACK TO THE NEW KEY
+    elseif d:find("ferocity") or d:find("double attack") then return "Focus_DoubleAttack"
     elseif d:find("accuracy") then return "Focus_Accuracy"
     elseif d:find("spell crit") then return "Focus_SpellCrit"
-    elseif d:find("double attack") then return "Focus_DoubleAttack"
     elseif d:find("haste") then return "Focus_Haste"
     end
     return nil
@@ -88,7 +89,8 @@ end
 
 function Weights.normalizeFocusValue(val, key)
     if not val or val == 0 then return 0 end
-    if (key == "Focus_MeleeCrit" or key == "Focus_Ferocity" or key == "Focus_Accuracy") and val <= 10 then
+    -- RENAME TIER MAPPING TO MATCH NEW KEY
+    if (key == "Focus_MeleeCrit" or key == "Focus_DoubleAttack" or key == "Focus_Accuracy") and val <= 10 then
         if val >= 5 then return 100 
         elseif val >= 3 then return 60 
         else return 30 end 
