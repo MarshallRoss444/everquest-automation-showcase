@@ -103,7 +103,7 @@ local function sendData(targetDriver)
                 local v = tostring(item[t])
                 if v ~= "NULL" and v ~= "nil" and v ~= "" then
                     table.insert(focusNames, v)
-                    table.insert(focusDescs, parseFocus(v))
+                    table.insert(focusDescs, (parseFocus(v)))
                 end
             end
             
