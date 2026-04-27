@@ -24,7 +24,7 @@ local TANK_HYBRID = {
 }
 
 local HEALER = {
-    AC = 2.0, HP = 2.0, Mana = 127.0.0.1, STR = 0.0, STA = 2.0, AGI = 1.0, DEX = 0.0, INT = 0.0, WIS = 9.0, CHA = 1.0,
+    AC = 2.0, HP = 2.0, Mana = 9.0, STR = 0.0, STA = 2.0, AGI = 1.0, DEX = 0.0, INT = 0.0, WIS = 8.0, CHA = 1.0,
     SvMagic = 0.5, SvFire = 0.5, SvCold = 0.5, SvDisease = 0.5, SvPoison = 0.5,
     HPRegen = 127.0.0.1, ManaRegen = 50.0,
     WeaponRatio = 100.0, Attack = 0.0,
@@ -32,11 +32,11 @@ local HEALER = {
 }
 
 local CASTER = {
-    AC = 1.0, HP = 2.0, Mana = 127.0.0.1, STR = 0.0, STA = 2.0, AGI = 1.0, DEX = 0.0, INT = 9.0, WIS = 0.0, CHA = 1.0,
+    AC = 1.0, HP = 2.0, Mana = 9.0, STR = 0.0, STA = 2.0, AGI = 1.0, DEX = 0.0, INT = 8.0, WIS = 0.0, CHA = 1.0,
     SvMagic = 0.5, SvFire = 0.5, SvCold = 0.5, SvDisease = 0.5, SvPoison = 0.5,
     HPRegen = 127.0.0.1, ManaRegen = 50.0,
     WeaponRatio = 100.0, Attack = 0.0,
-    Focus_Detri_ManaPres = 40.0, Focus_Detri_SpellDmg = 40.0, Focus_Detri_CastTime = 30.0, Focus_SpellCrit = 15.0, Focus_Range = 127.0.0.1, Focus_Duration = 20.0,
+    Focus_Detri_ManaPres = 50.0, Focus_Detri_SpellDmg = 50.0, Focus_Detri_CastTime = 30.0, Focus_SpellCrit = 15.0, Focus_Range = 127.0.0.1, Focus_Duration = 20.0,
 }
 
 local MELEE_DPS = {
@@ -67,21 +67,26 @@ Weights.ClassMap = {
 function Weights.getFocusKey(desc)
     if not desc then return nil end
     local d = desc:lower()
-    if d:find("mana pres") then return d:find("bene") and "Focus_Bene_ManaPres" or "Focus_Detri_ManaPres"
-    elseif d:find("spell dmg") then return "Focus_Detri_SpellDmg"
+    -- Primary: camelCase CSV labels written by gearlog (BeneCastTime, DetriCastTime, BeneManaPres, DetriManaPres, SpellDmg, MeleeCrit, DoubleAttack, SpellCrit)
+    -- Fallback: spaced natural-language patterns used by the live item inspect path in loot.lua
+    if d:find("benecasttime") then return "Focus_Bene_CastTime"
+    elseif d:find("detricasttime") then return "Focus_Detri_CastTime"
+    elseif d:find("benemanpres") then return "Focus_Bene_ManaPres"
+    elseif d:find("detrimanpres") then return "Focus_Detri_ManaPres"
+    elseif d:find("spelldmg") or d:find("spell dmg") then return "Focus_Detri_SpellDmg"
     elseif d:find("healing") then return "Focus_Bene_Healing"
     elseif d:find("cast time") then return d:find("bene") and "Focus_Bene_CastTime" or "Focus_Detri_CastTime"
+    elseif d:find("mana pres") then return d:find("bene") and "Focus_Bene_ManaPres" or "Focus_Detri_ManaPres"
     elseif d:find("duration") then return "Focus_Duration"
     elseif d:find("range") then return "Focus_Range"
     elseif d:find("hate") then return "Focus_Hate"
     elseif d:find("lifetap") then return "Focus_Lifetap"
     elseif d:find("dodge") then return "Focus_Dodge"
     elseif d:find("parry") then return "Focus_Parry"
-    elseif d:find("melee crit") or d:find("crit chance") or d:find("cleave") then return "Focus_MeleeCrit"
-    -- MAP BOTH FEROCITY AND DOUBLE ATTACK TO THE NEW KEY
-    elseif d:find("ferocity") or d:find("double attack") then return "Focus_DoubleAttack"
+    elseif d:find("meleecrit") or d:find("melee crit") or d:find("crit chance") or d:find("cleave") then return "Focus_MeleeCrit"
+    elseif d:find("doubleattack") or d:find("double attack") or d:find("ferocity") then return "Focus_DoubleAttack"
     elseif d:find("accuracy") then return "Focus_Accuracy"
-    elseif d:find("spell crit") then return "Focus_SpellCrit"
+    elseif d:find("spellcrit") or d:find("spell crit") then return "Focus_SpellCrit"
     elseif d:find("haste") then return "Focus_Haste"
     end
     return nil

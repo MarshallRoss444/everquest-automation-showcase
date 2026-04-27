@@ -38,8 +38,10 @@ local function parseFocus(fName)
         end
     end
     for attrib, val in pairs(effects) do
-        if attrib == 15 or attrib == 127 then desc = desc .. "CastTime " .. val .. "% - "
-        elseif attrib == 108 or attrib == 132 then desc = desc .. "ManaPres " .. val .. "% - "
+        if attrib == 15 then desc = desc .. "BeneCastTime " .. val .. "% - "
+        elseif attrib == 127 then desc = desc .. "DetriCastTime " .. val .. "% - "
+        elseif attrib == 108 then desc = desc .. "BeneManaPres " .. val .. "% - "
+        elseif attrib == 132 then desc = desc .. "DetriManaPres " .. val .. "% - "
         elseif attrib == 104 or attrib == 124 then desc = desc .. "SpellDmg " .. val .. "% - "
         elseif attrib == 105 or attrib == 125 then desc = desc .. "Healing " .. val .. "% - "
         elseif attrib == 114 or attrib == 11 then desc = desc .. "Hate " .. val .. "% - "
