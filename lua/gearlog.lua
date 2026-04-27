@@ -1,10 +1,12 @@
 local mq = require('mq')
 
 -- ==============================================================================
--- GearLog.lua - Version 18.1 (AUGMENT-AWARE RESTORATION)
+-- GearLog.lua - Version 18.2 (BENE/DETRI SPELLTYPE LIMIT AWARE)
 -- ==============================================================================
 -- Collects Full Augmented Stats (Base + Crystals).
 -- Uses .Item pointer to safely extract hidden focuses from socketed augments.
+-- v18.2: Attrib 127/132 (DetriCastTime/ManaPres) are reclassified to Bene
+--        when attrib 139 (SpellType limit) is negative (= beneficial only).
 
 local CSV_FILENAME = mq.TLO.MacroQuest.Path("Logs")() .. "\\MyGearLog.csv"
 
@@ -19,13 +21,16 @@ local function parseFocus(fName)
     if not s or not s() or s.ID() == 0 then return "" end
     local desc = ""
     local effects = {}
+    local spellTypeLimitB1 = nil  -- attrib 139: SpellType limit (negative = beneficial only)
     for i=1, 12 do
         local attrib = 0
         pcall(function() attrib = s.Attrib(i)() or 0 end)
         local val = 0
+        local rawB1 = 0
         pcall(function()
             local b1 = math.abs(s.Base(i)() or 0)
             local b2 = math.abs(s.Base2(i)() or 0)
+            rawB1 = s.Base(i)() or 0
             -- For Melee Crit, Accuracy, and Double Attack, Base1 is the percentage. Base2 is often Level Limit.
             if attrib == 168 or attrib == 169 or attrib == 273 or attrib == 100 or attrib == 177 or attrib == 4 then
                 val = b1
@@ -33,15 +38,24 @@ local function parseFocus(fName)
                 val = math.max(b1, b2)
             end
         end)
+        -- Capture SpellType limit to later resolve bene vs detri
+        if attrib == 139 then spellTypeLimitB1 = rawB1 end
         if attrib > 0 and val >= 1 then
             if not effects[attrib] or val > effects[attrib] then effects[attrib] = val end
         end
     end
+    -- If SpellType limit is negative, this focus is restricted to beneficial spells
+    local isBeneRestricted = spellTypeLimitB1 ~= nil and spellTypeLimitB1 < 0
     for attrib, val in pairs(effects) do
         if attrib == 15 then desc = desc .. "BeneCastTime " .. val .. "% - "
-        elseif attrib == 127 then desc = desc .. "DetriCastTime " .. val .. "% - "
+        elseif attrib == 127 then
+            -- Override to Bene if SpellType limit restricts to beneficial spells only
+            if isBeneRestricted then desc = desc .. "BeneCastTime " .. val .. "% - "
+            else desc = desc .. "DetriCastTime " .. val .. "% - " end
         elseif attrib == 108 then desc = desc .. "BeneManaPres " .. val .. "% - "
-        elseif attrib == 132 then desc = desc .. "DetriManaPres " .. val .. "% - "
+        elseif attrib == 132 then
+            if isBeneRestricted then desc = desc .. "BeneManaPres " .. val .. "% - "
+            else desc = desc .. "DetriManaPres " .. val .. "% - " end
         elseif attrib == 104 or attrib == 124 then desc = desc .. "SpellDmg " .. val .. "% - "
         elseif attrib == 105 or attrib == 125 then desc = desc .. "Healing " .. val .. "% - "
         elseif attrib == 114 or attrib == 11 then desc = desc .. "Hate " .. val .. "% - "

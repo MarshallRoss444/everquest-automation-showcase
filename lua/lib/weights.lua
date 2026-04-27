@@ -40,10 +40,10 @@ local CASTER = {
 }
 
 local MELEE_DPS = {
-    AC = 3.0, HP = 4.0, Mana = 0.0, STR = 5.0, STA = 2.0, AGI = 2.0, DEX = 5.0, INT = 0.0, WIS = 0.0, CHA = 0.0,
+    AC = 3.0, HP = 4.0, Mana = 0.0, STR = 5.0, STA = 2.0, AGI = 2.0, DEX = 4.0, INT = 0.0, WIS = 0.0, CHA = 0.0,
     SvMagic = 0.5, SvFire = 0.5, SvCold = 0.5, SvDisease = 0.5, SvPoison = 0.5,
     HPRegen = 15.0, ManaRegen = 0.0,
-    WeaponRatio = 5000.0, Attack = 40.0,
+    WeaponRatio = 4250.0, Attack = 20.0,
     Focus_Haste = 40.0, Focus_MeleeCrit = 40.0, Focus_DoubleAttack = 40.0, Focus_Accuracy = 30.0,
 }
 
