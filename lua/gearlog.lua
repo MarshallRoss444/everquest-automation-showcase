@@ -146,6 +146,8 @@ local function sendData(targetDriver)
                         agi = agi + ((aItem.AGI and aItem.AGI()) or 0)
                         dex = dex + ((aItem.DEX and aItem.DEX()) or 0)
                         cha = cha + ((aItem.CHA and aItem.CHA()) or 0)
+                        hpr = hpr + ((aItem.HPRegen and aItem.HPRegen()) or 0)
+                        mnr = mnr + ((aItem.ManaRegen and aItem.ManaRegen()) or 0)
                         
                         local f = tostring((aItem.Focus and aItem.Focus()) or "")
                         if f ~= "" and f ~= "NULL" and f ~= "nil" and not seen[f] then
