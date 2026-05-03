@@ -100,6 +100,10 @@ local function main()
         end
         printf("%d. \aw%-15s\ax (%s%-4s\ax) | \ao%d\ax", i, res.name, classColor, res.class, res.score)
     end
+
+    local raidTotal = 0
+    for _, res in ipairs(results) do raidTotal = raidTotal + res.score end
+    printf("\ag[Score] Raid Total GearScore: \ao%d\ax", raidTotal)
 end
 
 main()

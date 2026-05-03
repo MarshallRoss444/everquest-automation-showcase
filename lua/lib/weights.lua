@@ -1,9 +1,8 @@
 local Weights = {}
 
 -- ==============================================================================
--- Archetype Definitions (Multipliers) - THE GOLD STANDARD (CALIBRATED)
+-- Archetype Definitions (Multipliers) 
 -- ==============================================================================
--- Calibrated for ExampleTank (#1) and Rogue/Monk Parity (#12-#18).
 -- Verified "Attack" support. 
 -- Renamed Ferocity to DoubleAttack for clarity.
 
