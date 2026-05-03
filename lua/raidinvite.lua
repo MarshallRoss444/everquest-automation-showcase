@@ -31,10 +31,10 @@ local GROUPS = {
     { leader = 'ExampleChar17',    members = { 'ExampleChar49',  'ExampleChar53',  'ExampleChar30', 'ExampleChar35', 'ExampleChar38'   } },
     { leader = 'ExampleChar14',  members = { 'ExampleChar26',   'ExampleChar28',   'ExampleChar33',   'ExampleChar46','ExampleChar51'    } },
     { leader = 'ExampleChar22',    members = { 'ExampleChar13','ExampleChar29','ExampleChar02', 'ExampleChar52',   'ExampleChar45'   } },
-    { leader = 'ExampleChar41',    members = { 'ExampleChar23',    'ExampleChar16',  'ExampleChar07','ExampleChar36', 'ExampleChar05'  } },
+    { leader = 'ExampleChar41',    members = { 'ExampleChar09',    'ExampleChar16',  'ExampleChar07','ExampleChar36', 'ExampleChar05'  } },
     { leader = 'ExampleChar34',   members = { 'ExampleChar06',    'ExampleChar03', 'ExampleChar04',  'ExampleChar24', 'ExampleChar10'  } },
     { leader = 'ExampleChar11',    members = { 'ExampleChar01','ExampleChar32', 'ExampleChar31',  'ExampleChar21',  'ExampleChar44' } },
-    { leader = 'ExampleChar54',  members = { 'ExampleChar25',     'ExampleChar37',   'ExampleChar09',    'ExampleChar40',   'ExampleChar20'   } },
+    { leader = 'ExampleChar54',  members = { 'ExampleChar25',     'ExampleChar37',   'ExampleChar23',    'ExampleChar40',   'ExampleChar20'   } },
 }
 
 local RAID_LEADER    = 'ExampleTank'   -- Becomes raid leader (Group 1 member)
