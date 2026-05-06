@@ -88,22 +88,104 @@ local function main()
     end
 
     table.sort(results, function(a, b) return a.score > b.score end)
-    
-    printf("\ag[Score] Calibrated Snapshot Complete (Full %d Characters)\ax", #results)
-    for i, res in ipairs(results) do
-        local classColor = "\aw"
-        if res.class == "WAR" or res.class == "PAL" or res.class == "SHD" then classColor = "\ar"
-        elseif res.class == "CLR" or res.class == "SHM" or res.class == "DRU" then classColor = "\ap"
-        elseif res.class == "MNK" or res.class == "BER" or res.class == "ROG" then classColor = "\ay"
-        elseif res.class == "WIZ" or res.class == "MAG" or res.class == "NEC" or res.class == "ENC" then classColor = "\at"
-        elseif res.class == "BRD" or res.class == "RNG" or res.class == "BST" then classColor = "\am"
-        end
-        printf("%d. \aw%-15s\ax (%s%-4s\ax) | \ao%d\ax", i, res.name, classColor, res.class, res.score)
-    end
 
+    -- Compute summary stats
     local raidTotal = 0
     for _, res in ipairs(results) do raidTotal = raidTotal + res.score end
-    printf("\ag[Score] Raid Total GearScore: \ao%d\ax", raidTotal)
+    local average = #results > 0 and math.floor(raidTotal / #results) or 0
+
+    -- Top character per class
+    local CLASS_NAMES = {
+        WAR="Warrior", PAL="Paladin", SHD="Shadow Knight", CLR="Cleric", SHM="Shaman",
+        DRU="Druid", MNK="Monk", BER="Berserker", ROG="Rogue", WIZ="Wizard",
+        MAG="Magician", NEC="Necromancer", ENC="Enchanter", BRD="Bard",
+        RNG="Ranger", BST="Beastlord"
+    }
+    local CLASS_ORDER = { "WAR","PAL","SHD","CLR","SHM","DRU","BRD","RNG","BST","MNK","BER","ROG","WIZ","MAG","NEC","ENC" }
+    local CLASS_COLOR = {
+        WAR="\ar", PAL="\ar", SHD="\ar",
+        CLR="\ap", SHM="\ap", DRU="\ap",
+        MNK="\ay", BER="\ay", ROG="\ay",
+        WIZ="\at", MAG="\at", NEC="\at", ENC="\at",
+        BRD="\am", RNG="\am", BST="\am"
+    }
+
+    local topByClass = {}
+    for _, res in ipairs(results) do
+        if not topByClass[res.class] then
+            topByClass[res.class] = res
+        end
+    end
+
+    printf("\ag[Score] ==============================\ax")
+    printf("\ag[Score] === Raid GearScore Summary  ===\ax")
+    printf("\ag[Score] ==============================\ax")
+    printf("\ag[Score]\ax Total Raid GearScore:    \ao%d\ax", raidTotal)
+    printf("\ag[Score]\ax Average Character Score: \ao%d\ax", average)
+    printf("\ag[Score]\ax Characters Scored:       \aw%d\ax", #results)
+    printf("\ag[Score] ------------------------------\ax")
+    -- Fixed column widths: Shadow Knight: = 14 (longest class), ExampleBard = 16 (longest name)
+    local COL_CLASS = 16
+    local COL_NAME  = 18
+
+    printf("\ag[Score]\ax Top Characters per Class:")
+    for _, short in ipairs(CLASS_ORDER) do
+        local res = topByClass[short]
+        if res then
+            local color = CLASS_COLOR[short] or "\aw"
+            local fullName = CLASS_NAMES[short] or short
+            local label = fullName .. ":"
+            printf("  %s%-" .. COL_CLASS .. "s\ax \aw%-" .. COL_NAME .. "s\ax | \ao%d\ax", color, label, res.name, res.score)
+        end
+    end
+    printf("\ag[Score] ==============================\ax")
+
+    -- Return summary data for optional Discord post
+    return { raidTotal=raidTotal, average=average, count=#results, topByClass=topByClass, CLASS_NAMES=CLASS_NAMES, CLASS_ORDER=CLASS_ORDER, COL_CLASS=COL_CLASS, COL_NAME=COL_NAME }
 end
 
-main()
+-- Set your Discord webhook URL here. Leave empty to disable Discord posting.
+local WEBHOOK_URL = PASTEWEBHOOKURLHERE
+
+local function postToDiscord(summary)
+    if not WEBHOOK_URL or WEBHOOK_URL == "" then return false end
+
+    local lines = {}
+    table.insert(lines, "=== Raid GearScore Summary ===")
+    table.insert(lines, string.format("Total Raid GearScore:    %d", summary.raidTotal))
+    table.insert(lines, string.format("Average Character Score: %d", summary.average))
+    table.insert(lines, string.format("Characters Scored:       %d", summary.count))
+    table.insert(lines, string.rep("-", 40))
+    table.insert(lines, "Top Characters per Class:")
+    for _, short in ipairs(summary.CLASS_ORDER) do
+        local res = summary.topByClass[short]
+        if res then
+            local label = (summary.CLASS_NAMES[short] or short) .. ":"
+            table.insert(lines, string.format("  %-16s %-18s | %d", label, res.name, res.score))
+        end
+    end
+    table.insert(lines, string.rep("=", 40))
+
+    -- Write payload to a temp file to avoid shell escaping issues
+    local tmpFile = mq.TLO.MacroQuest.Path("Logs")() .. "\\discord_payload.json"
+    local body = table.concat(lines, "\n"):gsub("\n", "\\n")
+    local pf = io.open(tmpFile, "w")
+    if not pf then return false end
+    pf:write('{"content": "```\\n' .. body .. '\\n```"}')
+    pf:close()
+
+    local cmd = string.format('curl -s -X POST -H "Content-Type: application/json" -d @"%s" "%s"', tmpFile, WEBHOOK_URL)
+    os.execute(cmd)
+    return true
+end
+
+local args = {...}
+local summary = main()
+if args[1] == "discord" and summary then
+    local ok = postToDiscord(summary)
+    if ok then
+        printf("\ag[Score]\ax Successfully posted to \a#7289da#best-in-class\ax on Discord.")
+    else
+        printf("\ar[Score]\ax Discord post skipped — no webhook URL configured.")
+    end
+end
