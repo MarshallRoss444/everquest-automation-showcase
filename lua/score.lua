@@ -145,13 +145,13 @@ local function main()
 end
 
 -- Set your Discord webhook URL here. Leave empty to disable Discord posting.
-local WEBHOOK_URL = PASTEWEBHOOKURLHERE
+local WEBHOOK_URL = ""
 
 local function postToDiscord(summary)
     if not WEBHOOK_URL or WEBHOOK_URL == "" then return false end
 
     local lines = {}
-    table.insert(lines, "=== Raid GearScore Summary ===")
+    table.insert(lines, "=== Example Raid GearScore Summary ===")
     table.insert(lines, string.format("Total Raid GearScore:    %d", summary.raidTotal))
     table.insert(lines, string.format("Average Character Score: %d", summary.average))
     table.insert(lines, string.format("Characters Scored:       %d", summary.count))
