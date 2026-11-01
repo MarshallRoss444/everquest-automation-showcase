@@ -1,0 +1,23 @@
+# Local credentials and machine-specific state
+.env
+.env.*
+!.env.example
+AccountInfo*
+*.pem
+*.key
+config/
+private/
+backups/
+
+# Generated game data and reports
+Logs/
+logs/
+*.log
+*.csv
+discord_payload.json
+
+# Tooling
+node_modules/
+__pycache__/
+.DS_Store
+Thumbs.db
