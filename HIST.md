@@ -9,3 +9,5 @@
 - Corrected food-distribution usage comments to match the filename.
 - Added a guided README and explicit architecture/runtime limitations.
 - Excluded live configuration, personal notes, account information, generated data, backups, and bundled community packages.
+
+- Imported sanitized historical revisions of the selected Lua files, preserving recorded author and commit dates. The current showcase files remain the reviewed public version.

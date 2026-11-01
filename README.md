@@ -49,7 +49,7 @@ This is a hobby-code snapshot, not a claim of production reliability. Fixed dela
 
 ## Publication scope
 
-This repository starts with fresh history. It contains selected scripts with fictional character identifiers. Account notes, personal documents, live configuration, logs, backups, and the private repository's history are not included. Bundled community packages from the working environment are also omitted.
+This public edition includes sanitized historical revisions of the selected scripts, imported on October 31, 2026 with their original recorded dates. Historical commit hashes changed during sanitization; import notes identify the source revisions. Character identifiers are fictional. Account notes, personal documents, live configuration, logs, backups, and the unfiltered private history are not included. Bundled community packages from the working environment are also omitted.
 
 MacroQuest, DanNet, EverQuest, and other dependencies belong to their respective maintainers. This repository presents my selected scripting work within that ecosystem; it does not claim authorship of those platforms or bundle a game client.
 
